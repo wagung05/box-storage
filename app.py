@@ -657,11 +657,38 @@ button:hover{background:#0b76e6}
 .lock{margin-bottom:18px;color:rgba(255,255,255,.55);font-size:13px;display:flex;align-items:center;gap:6px}
 '''
 
-def _gate_html(title, desc, form=False, note=None):
-    form_html = '''<form method="post"><input type="password" name="pw" placeholder="Kata sandi tautan" autofocus required><button>Buka tautan</button></form>''' if form else ""
-    lock_html = '<div class="lock">&#128274; Tautan dilindungi kata sandi</div>' if form else ''
+def _gate_html(token, title, desc, form=False, note=None, error=None):
+    err_html = f'<div style="color:#ff453a;font-size:13px;margin-bottom:12px;display:flex;align-items:center;gap:6px"><i class="fa-solid fa-triangle-exclamation"></i> {error}</div>' if error else ''
+    form_html = f'''<form method="post" action="/s/{token}">
+      {err_html}
+      <input type="password" name="pw" placeholder="Masukkan kata sandi tautan" autofocus required autocomplete="current-password">
+      <button type="submit">Buka Berkas</button>
+    </form>''' if form else ""
+    lock_html = '<div class="lock"><i class="fa-solid fa-shield-halved"></i> Tautan dilindungi kata sandi</div>' if form else ''
     note_html = f'<p class="desc" style="margin-top:14px">{note}</p>' if note else ""
-    return f"""<!DOCTYPE html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Storage</title>{_GATE_CSS}</head><body><div class="card"><div class="ico">&#128274;</div><h1>{title}</h1><p class="desc">{desc}</p>{lock_html}{form_html}{note_html}</div></body></html>"""
+    return f"""<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#06060a">
+<title>{title} — Box Storage</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+{_GATE_CSS}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="ico"><i class="fa-solid fa-lock"></i></div>
+  <h1>{title}</h1>
+  <p class="desc">{desc}</p>
+  {lock_html}
+  {form_html}
+  {note_html}
+</div>
+</body>
+</html>"""
 
 
 def _share_preview_html(token, target, pw=""):
@@ -843,16 +870,19 @@ def serve_share(token):
         abort(404)
     now = time.time()
     if entry.get("expires_at") and now > entry["expires_at"]:
-        return _gate_html("Tautan kedaluwarsa", "Masa berlaku tautan ini sudah habis.", note="File di sisi server tidak dihapus; buat tautan baru dari aplikasi.")
+        return _gate_html(token, "Tautan kedaluwarsa", "Masa berlaku tautan ini sudah habis.", note="File di sisi server tidak dihapus; buat tautan baru dari aplikasi.")
     if entry.get("limit") and entry.get("uses", 0) >= entry["limit"]:
-        return _gate_html("Batas unduhan tercapai", f"Tautan ini hanya boleh diunduh {entry['limit']} kali dan sudah tercapai.", note="Buat tautan baru dari aplikasi untuk lanjut.")
+        return _gate_html(token, "Batas unduhan tercapai", f"Tautan ini hanya boleh diunduh {entry['limit']} kali dan sudah tercapai.", note="Buat tautan baru dari aplikasi untuk lanjut.")
     target = (STORAGE_DIR / entry["path"].lstrip("/")).resolve()
     if not target.exists():
         abort(404)
     pw = entry.get("password")
     sent = request.form.get("pw") or request.args.get("pw") or ""
-    if pw and not hmac.compare_digest(pw, sent):
-        return _gate_html("Tautan dilindungi", "Tautan ini diamankan kata sandi. Masukkan kata sandi untuk mengunduh.", form=True), 403
+    if pw:
+        if not sent:
+            return _gate_html(token, "Tautan Dilindungi", "Tautan ini diamankan kata sandi. Masukkan kata sandi untuk melihat atau mengunduh berkas.", form=True), 200
+        if not hmac.compare_digest(pw, sent):
+            return _gate_html(token, "Tautan Dilindungi", "Tautan ini diamankan kata sandi. Masukkan kata sandi untuk melihat atau mengunduh berkas.", form=True, error="Kata sandi salah. Silakan coba lagi."), 403
 
     if request.args.get("dl") == "1":
         entry["uses"] = entry.get("uses", 0) + 1
