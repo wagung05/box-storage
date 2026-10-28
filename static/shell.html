@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#06060a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Storage">
+<meta name="description" content="File storage & box cloud, ringan dan cepat.">
+<title>Box Storage — Cloud Storage</title>
+<link rel="manifest" href="/static/manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="32x32" href="/static/icon-32.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-180.png">
+<link rel="stylesheet" href="/static/fa/all.min.css">
+<link rel="stylesheet" href="/static/app.css?v=21">
+</head>
+<body class="dark">
+
+<!-- ===== DRAWER (menu garis 3) ===== -->
+<div id="drawerOverlay"></div>
+<aside id="drawer" aria-label="Menu">
+  <div class="drawer-head">
+    <span class="drawer-brand"><i class="fa-solid fa-cloud"></i> Storage</span>
+    <button class="drawer-close" id="drawerClose" aria-label="Tutup"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <!-- GUEST -->
+  <div id="drawerGuest">
+    <p class="drawer-hint">Masuk sebagai admin untuk mengelola berkas.</p>
+    <form id="drawerLoginForm">
+      <div class="input-wrap">
+        <i class="fa-solid fa-lock"></i>
+        <input type="password" id="drawerPassword" placeholder="Kata sandi admin" autocomplete="current-password">
+      </div>
+      <button type="submit" class="drawer-login-btn" id="drawerLoginBtn">
+        <i class="fa-solid fa-right-to-bracket"></i> Masuk
+      </button>
+      <p class="drawer-error" id="drawerLoginError"></p>
+    </form>
+  </div>
+
+  <!-- ADMIN -->
+  <div id="drawerAdmin" hidden>
+    <div class="drawer-admin-badge"><i class="fa-solid fa-shield-halved"></i> Admin</div>
+    <button class="drawer-item" data-nav="panel"><i class="fa-solid fa-chart-pie"></i><span>Dashboard</span></button>
+    <button class="drawer-item" data-nav="folder"><i class="fa-solid fa-folder-plus"></i><span>Folder Baru</span></button>
+    <button class="drawer-item" id="drawerTrash"><i class="fa-solid fa-trash-can"></i><span>Sampah</span><span class="drawer-theme-val" id="trashCount">0</span></button>
+    <button class="drawer-item" data-nav="settings"><i class="fa-solid fa-gear"></i><span>Setelan</span></button>
+  </div>
+
+  <div class="drawer-divider"></div>
+
+  <button class="drawer-item" id="drawerTheme">
+    <i class="fa-solid fa-circle-half-stroke"></i><span>Tema</span>
+    <span class="drawer-theme-val" id="drawerThemeVal">Mode Gelap</span>
+  </button>
+
+  <button class="drawer-item" id="drawerVault">
+    <i class="fa-solid fa-lock"></i><span>Vault</span>
+    <span class="drawer-theme-val" id="drawerVaultState">Terkunci</span>
+  </button>
+
+  <div id="drawerLoggedActions" class="drawer-foot" hidden>
+    <button class="drawer-item danger" id="drawerLogout"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Keluar</span></button>
+  </div>
+</aside>
+
+<!-- ===== APP ===== -->
+<div id="app" class="app">
+  <header class="app-header">
+    <div class="header-left">
+      <button class="edge-btn" id="menuBtn" aria-label="Menu"><i class="fa-solid fa-bars"></i></button>
+      <span class="app-name"><span class="dot"></span><span id="appName">Storage</span></span>
+    </div>
+    <div class="header-right">
+      <button class="edge-btn" id="backBtn" aria-label="Kembali" title="Kembali (Alt+←)" hidden><i class="fa-solid fa-arrow-left"></i></button>
+      <nav class="crumb" id="breadcrumb" aria-label="Jalur folder"></nav>
+      <button class="edge-btn theme-btn" id="themeBtn" aria-label="Tema"><i class="fa-solid ti fa-sun"></i></button>
+    </div>
+  </header>
+
+  <div class="app-main" id="appMain">
+    <!-- File browser -->
+    <section id="browseView">
+      <div class="toolbar">
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input id="searchInput" type="search" placeholder="Cari di storage..." autocomplete="off">
+          <button id="clearSearch" class="clear-btn" aria-label="Bersihkan" hidden><i class="fa-solid fa-xmark"></i></button>
+          <kbd class="kbdhint">⌘K</kbd>
+        </div>
+        <div class="toolbar-actions">
+          <button class="icon-btn" id="recycleBtn" aria-label="Sampah" title="Sampah (Recycle Bin)"><i class="fa-solid fa-trash-can"></i></button>
+          <button class="icon-btn" id="selMode" aria-label="Pilih banyak" title="Pilih banyak"><i class="fa-solid fa-check-double"></i></button>
+          <button class="icon-btn active" id="viewList" aria-label="List" title="List"><i class="fa-solid fa-list"></i></button>
+          <button class="icon-btn" id="viewGrid" aria-label="Grid" title="Grid"><i class="fa-solid fa-table-cells"></i></button>
+        </div>
+      </div>
+
+      <div class="selbar" id="selBar" hidden>
+        <div class="sel-info" id="selInfo">0 dipilih</div>
+        <div class="sel-acts">
+          <button class="sel-btn" id="selZip"><i class="fa-solid fa-file-zipper"></i><span>ZIP</span></button>
+          <button class="sel-btn" id="selMove"><i class="fa-solid fa-folder-open"></i><span>Pindah</span></button>
+          <button class="sel-btn danger" id="selDel"><i class="fa-solid fa-trash"></i><span>Hapus</span></button>
+          <button class="sel-btn close" id="selCancel" aria-label="Batal"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+      </div>
+
+      <div class="filter-bar" id="filterBar"></div>
+
+      <div class="skeleton" id="skeleton" hidden></div>
+      <div class="entries" id="entries"></div>
+      <div class="empty" id="emptyState" hidden>
+        <div class="empty-icon"><i class="fa-regular fa-folder-open"></i></div>
+        <div class="empty-title">Belum ada berkas</div>
+        <div class="empty-sub">Folder ini masih kosong.</div>
+      </div>
+    </section>
+
+    <!-- Panel (admin) -->
+    <section class="panel" id="panelView" hidden></section>
+
+    <!-- Settings (admin) -->
+    <section class="settings" id="settingsView" hidden>
+      <div class="settings-container">
+        <div class="panel-card">
+          <div class="panel-card-header">
+            <div class="panel-card-icon"><i class="fa-solid fa-sliders"></i></div>
+            <div class="panel-card-info"><div class="panel-card-title">Decoy</div></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Upload (admin only) -->
+  <footer class="app-footer" id="uploadBar" hidden>
+    <div class="upload-zone" id="uploadZone">
+      <span class="upload-text"><i class="fa-solid fa-cloud-arrow-up"></i><span>Seret &amp; lepas atau tekan Unggah</span></span>
+    </div>
+    <button class="fab" id="fabUpload" aria-label="Unggah"><i class="fa-solid fa-plus"></i></button>
+  </footer>
+
+  <!-- Bottom nav -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" data-tab="files"><i class="fa-solid fa-inbox"></i><span>Berkas</span></button>
+    <button class="nav-item" data-tab="panel" id="navPanel" hidden><i class="fa-solid fa-chart-pie"></i><span>Panel</span></button>
+    <button class="nav-item" data-tab="settings" id="navSettings" hidden><i class="fa-solid fa-gear"></i><span>Setelan</span></button>
+  </nav>
+
+  <input type="file" id="fileInput" hidden>
+</div>
+
+<!-- ===== COMMAND PALETTE ===== -->
+<div class="scrim" id="paletteOverlay" hidden></div>
+<div class="palette" id="palette" role="dialog" aria-modal="true" aria-label="Cari cepat" hidden>
+  <div class="palette-box">
+    <div class="palette-input-wrap">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input id="paletteInput" placeholder="Cari cepat semua berkas & folder…" autocomplete="off" spellcheck="false">
+      <kbd>Esc</kbd>
+    </div>
+    <div class="palette-empty" id="paletteEmpty">Ketik untuk mencari di seluruh storage…</div>
+    <div class="palette-results" id="paletteResults"></div>
+  </div>
+</div>
+
+<!-- ===== SHARE SHEET ===== -->
+<div class="scrim" id="shareOverlay" hidden></div>
+<div class="sheet" id="shareSheet" role="dialog" aria-modal="true" aria-label="Bagikan" hidden>
+  <div class="sheet-head">
+    <div class="sheet-ico"><i class="fa-solid fa-share-nodes"></i></div>
+    <div class="sheet-ttl"><div class="sheet-title">Bagikan berkas</div><div class="sheet-sub" id="shareName">—</div></div>
+    <button class="sheet-close" id="shareClose" aria-label="Tutup"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="sheet-body">
+    <div class="share-qr-wrap" id="shareQRWrap" hidden><img id="shareQR" alt="QR"></div>
+    <div class="share-link-row">
+      <input id="shareLink" readonly>
+      <button id="shareCopy" class="share-copy" aria-label="Salin"><i class="fa-solid fa-copy"></i></button>
+    </div>
+    <div class="share-opts">
+      <div class="share-opt">
+        <i class="fa-solid fa-link"></i>
+        <input type="text" id="shareSlug" placeholder="Custom link slug (opsional)" autocomplete="off" maxlength="40">
+      </div>
+      <div class="share-opt">
+        <i class="fa-solid fa-lock"></i>
+        <input type="text" id="sharePw" placeholder="Kata sandi (opsional)" autocomplete="off" maxlength="40">
+      </div>
+      <div class="share-opt">
+        <i class="fa-solid fa-clock"></i>
+        <select id="shareExp">
+          <option value="0">Masa berlaku: tidak terbatas</option>
+          <option value="1">1 jam</option>
+          <option value="24">1 hari</option>
+          <option value="168">7 hari</option>
+          <option value="720">30 hari</option>
+        </select>
+      </div>
+      <div class="share-opt">
+        <i class="fa-solid fa-download"></i>
+        <input type="number" id="shareLimit" placeholder="Batas unduhan (opsional)" min="1" max="99999" inputmode="numeric">
+      </div>
+    </div>
+    <button class="share-create" id="shareCreate"><i class="fa-solid fa-wand-magic-sparkles"></i> Buat tautan</button>
+    <p class="share-tip" id="shareTip"><i class="fa-solid fa-circle-info"></i> Siapa pun dengan tautan ini bisa langsung mengunduh. Bisa kunci dengan kata sandi, masa berlaku, dan batas unduhan.</p>
+  </div>
+</div>
+
+<!-- ===== VAULT: PIN ===== -->
+<div class="scrim" id="pinOverlay" hidden></div>
+<div class="pin" id="pinSheet" role="dialog" aria-modal="true" aria-label="Vault" hidden>
+  <div class="pin-box">
+    <div class="pin-ico"><i class="fa-solid fa-lock"></i></div>
+    <div class="pin-title">Vault</div>
+    <div class="pin-sub">Masukkan PIN untuk membuka</div>
+    <input type="password" id="pinInput" inputmode="numeric" autocomplete="off" placeholder="••••••" maxlength="12">
+    <p class="pin-err" id="pinError"></p>
+    <div class="pin-actions"><button class="pin-cancel" id="pinCancel">Batal</button><button class="pin-go" id="pinGo">Buka</button></div>
+  </div>
+</div>
+
+<!-- ===== VAULT: PREVIEW ===== -->
+<div class="scrim" id="vaultPrevOverlay" hidden></div>
+<div class="vault-prev" id="vaultPrev" role="dialog" aria-modal="true" aria-label="Pratinjau" hidden>
+  <div class="vault-prev-head">
+    <div class="vault-prev-title" id="vaultPrevName">—</div>
+    <div class="vault-prev-actions">
+      <button id="vaultPrevDl" title="Unduh"><i class="fa-solid fa-arrow-down-to-line"></i></button>
+      <button id="vaultPrevDel" title="Hapus"><i class="fa-solid fa-trash"></i></button>
+      <button class="vault-close" id="vaultPrevClose" aria-label="Tutup"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div>
+  <div class="vault-prev-box" id="vaultPrevBox"></div>
+</div>
+
+<!-- ===== TRASH ===== -->
+<div class="scrim" id="trashOverlay" hidden></div>
+<div class="sheet" id="trashSheet" role="dialog" aria-modal="true" aria-label="Sampah" hidden>
+  <div class="sheet-head">
+    <div class="sheet-ico"><i class="fa-solid fa-trash-can"></i></div>
+    <div class="sheet-ttl"><div class="sheet-title">Sampah</div><div class="sheet-sub">File terhapus. Auto-hapus permanen setelah 30 hari.</div></div>
+    <button class="sheet-close" id="trashClose" aria-label="Tutup"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="sheet-body">
+    <button class="trash-empty" id="trashEmpty"><i class="fa-solid fa-trash-arrow-up"></i> Kosongkan semua</button>
+    <div class="trash-list" id="trashList"></div>
+    <div class="trash-empty-state" id="trashEmptyState" hidden>
+      <i class="fa-regular fa-folder-open"></i><p>Sampah kosong</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ZIP INSPECTOR SHEET ===== -->
+<div class="scrim" id="zipOverlay" hidden></div>
+<div class="sheet" id="zipSheet" role="dialog" aria-modal="true" aria-label="Isi ZIP" hidden>
+  <div class="sheet-head">
+    <div class="sheet-ico"><i class="fa-solid fa-file-zipper"></i></div>
+    <div class="sheet-ttl"><div class="sheet-title">Daftar Berkas ZIP</div><div class="sheet-sub" id="zipName">—</div></div>
+    <button class="sheet-close" id="zipClose" aria-label="Tutup"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="sheet-body" style="padding:12px 16px">
+    <div id="zipList" class="zip-list"></div>
+  </div>
+</div>
+
+<!-- ===== PREVIEW (inline viewer) ===== -->
+<div class="scrim" id="previewOverlay" hidden></div>
+<div class="preview-sheet" id="previewSheet" role="dialog" aria-modal="true" aria-label="Pratinjau" hidden>
+  <div class="preview-head">
+    <div class="preview-title" id="previewName">—</div>
+    <div class="preview-actions">
+      <button id="previewDl" title="Unduh"><i class="fa-solid fa-arrow-down-to-line"></i></button>
+      <button id="previewClose" aria-label="Tutup"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+  </div>
+  <div class="preview-box" id="previewBox"></div>
+</div>
+
+<!-- ===== UPLOAD PROGRESS ===== -->
+<div class="upbar" id="upBar" hidden>
+  <div class="up-info"><span id="upName">Mengunggah…</span><span id="upPct">0%</span></div>
+  <div class="progress-bar up-progress"><div class="progress-fill" id="upFill" style="width:0%"></div></div>
+  <button class="up-cancel" id="upCancel"><i class="fa-solid fa-xmark"></i></button>
+</div>
+
+<script src="/static/app.js?v=21"></script>
+</body>
+</html>

@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Telegram Bot — Instalasi Manual</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--accent:#0a84ff;--bg:#06060a;--card:rgba(255,255,255,.04);--border:rgba(255,255,255,.09);--text:#f2f2f7;--mut:rgba(255,255,255,.55)}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:34px 18px 60px}
+.wrap{max-width:760px;margin:0 auto}
+.badge{display:inline-flex;align-items:center;gap:8px;background:rgba(48,209,88,.12);color:#30d158;border:1px solid rgba(48,209,88,.35);font-size:12px;font-weight:700;padding:6px 12px;border-radius:99px;margin-bottom:14px}
+h1{font-size:26px;font-weight:800;letter-spacing:-.02em;margin-bottom:6px}
+p.sub{color:var(--mut);font-size:14px;line-height:1.6;margin-bottom:26px}
+.step{display:flex;gap:16px;background:var(--card);border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:14px}
+.step-n{flex:0 0 30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#0a84ff,#5e5ce6);display:grid;place-items:center;font-weight:800;font-size:13px}
+.step-b{flex:1;min-width:0}
+.step-b h3{font-size:15px;font-weight:700;margin-bottom:6px}
+.step-b p{color:var(--mut);font-size:13.5px;line-height:1.6;margin-bottom:8px}
+.step-b code{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:2px 7px;font-size:12.5px;font-family:ui-monospace,Menlo,Consolas,monospace}
+.form{display:grid;grid-template-columns:1fr;gap:12px;margin:18px 0}
+.field label{display:block;font-size:12.5px;font-weight:600;color:var(--mut);margin-bottom:6px}
+.field input{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--border);border-radius:12px;padding:12px 14px;color:var(--text);font-size:14px;outline:none;font-family:inherit}
+.field input:focus{border-color:var(--accent)}
+.btn{background:var(--accent);color:#fff;border:none;border-radius:13px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn:hover{background:#0b76e6}
+.out{display:none;margin-top:22px}
+.out h2{font-size:17px;font-weight:800;margin-bottom:6px}
+.copy-wrap{display:flex;gap:10px;margin-bottom:10px;align-items:center}
+pre{background:#0c0c12;border:1px solid var(--border);border-radius:14px;padding:18px;overflow:auto;font-size:12px;line-height:1.6;font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;max-height:420px;white-space:pre}
+.copy{background:rgba(255,255,255,.08);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:9px 14px;font-size:13px;font-weight:600;cursor:pointer}
+.copy.ok{background:rgba(48,209,88,.16);color:#30d158;border-color:rgba(48,209,88,.4)}
+.tip{color:var(--mut);font-size:13px;margin-top:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <span class="badge">&#129302; StorageBot — Instalasi Manual</span>
+  <h1>Telegram Bot untuk Box Storage</h1>
+  <p class="sub">Kirim file dari HP ke storage langsung lewat chat, minta file balik, list folder. Page ini cuma panduan + generator script — server nggak pernah lihat token / password bot kamu.</p>
+
+  <div class="step"><div class="step-n">1</div><div class="step-b"><h3>Buat bot di @BotFather</h3><p>Buka <code>@BotFather</code> di Telegram, ketik <code>/newbot</code>, beri nama unik. BotFather memberi <b>HTTP API token</b> berbentuk <code>123456:ABC-DEF....</code> — salin token-nya.</p></div></div>
+
+  <div class="step"><div class="step-n">2</div><div class="step-b"><h3>Izinkan bot membalas chat</h3><p>Setelah bot jalan, kirim <code>/start</code> ke bot kamu dulu (biar bot boleh membalas kamu).</p></div></div>
+
+  <div class="step"><div class="step-n">3</div><div class="step-b"><h3>Isi konfigurasi</h3><p>Token dari BotFather, base URL storage (misal <code>https://box.domainanda.com</code>), dan kata sandi admin storage (yang dipakai login di web).</p></div></div>
+
+  <div class="form">
+    <div class="field"><label>Bot token (dari @BotFather)</label><input id="tok" placeholder="123456:ABC-DEF..."></div>
+    <div class="field"><label>Base URL storage</label><input id="base" placeholder="http://localhost:8080 atau https://box.domainanda.com"></div>
+    <div class="field"><label>Kata sandi admin web</label><input id="pass" type="password" placeholder="kata sandi login admin"></div>
+  </div>
+  <button class="btn" id="gen">&#128273; Generate script bot</button>
+
+  <div class="out" id="out">
+    <h2>Script siap</h2>
+    <div class="copy-wrap"><button class="copy" id="copy">Salin script</button><span id="copied" style="color:var(--mut);font-size:13px"></span></div>
+    <pre id="code"></pre>
+    <p class="tip"><b>Jalankan:</b> simpan sebagai <code>storagebot.py</code>, lalu <code>pip install python-telegram-bot==20.8</code> dan <code>python3 storagebot.py</code>. Bisa di VPS mana pun. Tes: ketik <code>/start</code> &amp; <code>/list</code>, kirim file apa pun ke chat — harus kesimpen ke storage.</p>
+  </div>
+</div>
+
+<script>
+const SCRIPT = `#!/usr/bin/env python3
+import os, io, json, uuid, mimetypes
+import urllib.request, urllib.parse
+from telegram import Update, InputFile
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+
+TOKEN = "__TOKEN__"
+BASE = "__BASE__"
+PASS = "__PASS__"
+
+def api(path, method="GET", body=None, ctype=None):
+    req = urllib.request.Request(BASE + path, data=body, method=method)
+    if ctype:
+        req.add_header("Content-Type", ctype)
+    with urllib.request.urlopen(req, timeout=180) as r:
+        return r.read()
+
+def do_login():
+    api("/api/login", "POST", json.dumps({"password": PASS}).encode(), "application/json")
+
+def fmt_size(n):
+    for u in ("B", "KB", "MB", "GB"):
+        if n < 1024:
+            return ("%.1f %s" % (n, u)) if u != "B" else "%d B" % n
+        n /= 1024.0
+    return "%.1f TB" % n
+
+async def cmd_start(update, ctx):
+    await update.message.reply_text(
+        "StorageBot siap.\\n"
+        "/list - daftar root\\n"
+        "/get <path> - unduh file\\n"
+        "Kirim foto/dokumen - simpan ke root\\n"
+        "Kirim file + caption path (misal /Video) - simpan ke folder itu")
+
+async def cmd_list(update, ctx):
+    try:
+        do_login()
+        d = json.loads(api("/api/list"))
+        if not d:
+            await update.message.reply_text("Storage kosong.")
+            return
+        lines = ["\\U0001F4C1 Storage root:"]
+        for it in d:
+            if it.get("is_dir"):
+                lines.append("\\U0001F4C1 " + it["name"] + "/")
+            else:
+                lines.append("\\U0001F4C4 " + it["name"] + " (" + fmt_size(it.get("size", 0)) + ")")
+        await update.message.reply_text("\\n".join(lines))
+    except Exception as e:
+        await update.message.reply_text("Gagal list: " + str(e))
+
+async def cmd_get(update, ctx):
+    if not ctx.args:
+        await update.message.reply_text("Pakai: /get <path>\\nContoh: /get Video/sample.mp4")
+        return
+    try:
+        do_login()
+        p = "/".join(ctx.args)
+        data = api("/api/download?path=" + urllib.parse.quote(p))
+        if data.startswith(b"{"):
+            await update.message.reply_text("File tidak ditemukan.")
+            return
+        await update.message.reply_document(InputFile(io.BytesIO(data), filename=os.path.basename(p)))
+    except Exception as e:
+        await update.message.reply_text("Gagal unduh: " + str(e))
+
+async def handle_file(update, ctx):
+    try:
+        f = update.message.effective_attachment
+        if not f:
+            return
+        if isinstance(f, (list, tuple)):
+            f = f[-1]
+        name = getattr(f, "file_name", None) or ("foto_" + str(f.file_id)[:12] + ".jpg")
+        data = await f.download_as_bytearray()
+        folder = (update.message.caption or "").strip()
+        if folder and not folder.startswith("/"):
+            folder = ""
+        folder = folder.rstrip("/")
+        do_login()
+        ctype = mimetypes.guess_type(name)[0] or "application/octet-stream"
+        boundary = "----StorageBot" + uuid.uuid4().hex
+        def mp_part(field, value, fname=None):
+            head = ("--" + boundary + "\\r\\n").encode("utf-8")
+            if fname:
+                return head + ("Content-Disposition: form-data; name=\\"" + field + "\\"; filename=\\"" + fname + "\\"\\r\\nContent-Type: " + ctype + "\\r\\n\\r\\n").encode("utf-8")
+            return head + ("Content-Disposition: form-data; name=\\"" + field + "\\"\\r\\n\\r\\n" + value + "\\r\\n").encode("utf-8")
+        body = b""
+        if folder:
+            body += mp_part("path", folder)
+        body += mp_part("file", "", fname=name)
+        body += bytes(data)
+        body += ("\\r\\n--" + boundary + "--\\r\\n").encode("utf-8")
+        req = urllib.request.Request(BASE + "/api/upload", data=body, method="POST",
+            headers={"Content-Type": "multipart/form-data; boundary=" + boundary})
+        with urllib.request.urlopen(req, timeout=300) as r:
+            res = json.loads(r.read())
+        await update.message.reply_text("Tersimpan: " + (res.get("name") or name) + " di " + (folder or "/"))
+    except Exception as e:
+        await update.message.reply_text("Gagal simpan: " + str(e))
+
+def main():
+    do_login()
+    app = ApplicationBuilder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", cmd_start))
+    app.add_handler(CommandHandler("list", cmd_list))
+    app.add_handler(CommandHandler("get", cmd_get))
+    app.add_handler(MessageHandler(filters.PHOTO | filters.Document.ALL, handle_file))
+    print("StorageBot jalan. Tekan Ctrl+C untuk berhenti.")
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
+`;
+
+const $tok=$("tok"),$base=$("base"),$pass=$("pass"),$out=$("out"),$code=$("code");
+let last="";
+function $(id){return document.getElementById(id)}
+$("gen").onclick=()=>{
+  const tok=$tok.value.trim();
+  if(!tok){$tok.focus();return}
+  const pw=$pass.value.trim().replace(/([\\"])/g,"\\$1");
+  last=SCRIPT
+    .replace("__TOKEN__",tok)
+    .replace("__BASE__",($base.value.trim()||location.origin).replace(/\/+$/,""))
+    .replace("__PASS__",pw);
+  $code.textContent=last; $out.style.display="block"; $("copied").textContent="";
+};
+$("copy").onclick=async()=>{
+  if(!last)return;
+  try{await navigator.clipboard.writeText(last)}catch(e){const t=document.createElement("textarea");t.value=last;document.body.appendChild(t);t.select();document.execCommand("copy");t.remove()}
+  const b=$("copy");b.classList.add("ok");b.textContent="Tersalin!";
+  $("copied").textContent="script sudah di clipboard";
+  setTimeout(()=>{b.classList.remove("ok");b.textContent="Salin script"},1800);
+};
+</script>
+</body>
+</html>

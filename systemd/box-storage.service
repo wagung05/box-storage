@@ -1,0 +1,16 @@
+[Unit]
+Description=Box Storage Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/box-storage
+EnvironmentFile=/opt/box-storage/.env
+ExecStart=/usr/bin/python3 /opt/box-storage/app.py
+Restart=on-failure
+RestartSec=5
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
