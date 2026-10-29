@@ -744,22 +744,13 @@ async function processNextUpload() {
     return;
   }
 
-  // Check file conflict first
+  // Check file conflict locally from remoteResults without extra network roundtrips!
   let conflictMode = conflictDecisionGlobal || "";
-  if (!conflictMode) {
-    try {
-      const checkFd = new FormData();
-      checkFd.append("file", file);
-      checkFd.append("path", currentPath);
-      checkFd.append("conflict", "check");
-      const checkRes = await fetch(API_BASE + "/api/upload", { method: "POST", body: checkFd });
-      if (checkRes.ok) {
-        const checkData = await checkRes.json();
-        if (checkData.conflict) {
-          conflictMode = await promptConflictResolution(file, checkData);
-        }
-      }
-    } catch(e) {}
+  if (!conflictMode && remoteResults && Array.isArray(remoteResults)) {
+    const existing = remoteResults.find(it => !it.is_dir && it.name.toLowerCase() === file.name.toLowerCase());
+    if (existing) {
+      conflictMode = await promptConflictResolution(file, { existing_size: existing.size, existing_mtime: existing.mtime });
+    }
   }
 
   if (conflictMode === "skip") {
@@ -773,34 +764,68 @@ async function processNextUpload() {
   fd.append("path", currentPath);
   if (conflictMode) fd.append("conflict", conflictMode);
 
-  upXhr = new XMLHttpRequest();
-  upXhr.open("POST", API_BASE + "/api/upload");
-  upXhr.upload.onprogress = e => {
-    if (e.lengthComputable) {
-      upSet(e.loaded, e.total, currentIdx, totalCount);
-    }
-  };
-  upXhr.onload = () => {
-    const st = upXhr.status;
-    upXhr = null;
-    if (st === 401) {
-      cancelUploadQueue();
-      doLoginPrompt();
-      return;
-    }
-    if (st >= 200 && st < 300) {
-      processNextUpload();
-    } else {
-      applyToast(`Gagal mengunggah ${file.name}`, "fa-triangle-exclamation");
-      processNextUpload();
-    }
-  };
-  upXhr.onerror = () => {
-    upXhr = null;
-    applyToast(`Koneksi terputus saat mengunggah ${file.name}`, "fa-triangle-exclamation");
-    processNextUpload();
-  };
-  upXhr.send(fd);
+  let attempts = 0;
+  const maxAttempts = 3;
+
+  function sendXhr() {
+    attempts++;
+    upXhr = new XMLHttpRequest();
+    upXhr.open("POST", API_BASE + "/api/upload");
+    upXhr.timeout = 180000; // 3 menit per file
+
+    upXhr.upload.onprogress = e => {
+      if (e.lengthComputable) {
+        upSet(e.loaded, e.total, currentIdx, totalCount);
+      }
+    };
+
+    upXhr.onload = () => {
+      const st = upXhr.status;
+      upXhr = null;
+      if (st === 401) {
+        cancelUploadQueue();
+        doLoginPrompt();
+        return;
+      }
+      if (st >= 200 && st < 300) {
+        setTimeout(processNextUpload, 40);
+      } else {
+        if (attempts < maxAttempts) {
+          console.warn(`Retry upload ${file.name} attempt ${attempts}...`);
+          setTimeout(sendXhr, 800);
+        } else {
+          applyToast(`Gagal mengunggah ${file.name}`, "fa-triangle-exclamation");
+          processNextUpload();
+        }
+      }
+    };
+
+    upXhr.ontimeout = () => {
+      upXhr = null;
+      if (attempts < maxAttempts) {
+        console.warn(`Timeout upload ${file.name}, retry ${attempts}...`);
+        setTimeout(sendXhr, 1000);
+      } else {
+        applyToast(`Timeout saat mengunggah ${file.name}`, "fa-triangle-exclamation");
+        processNextUpload();
+      }
+    };
+
+    upXhr.onerror = () => {
+      upXhr = null;
+      if (attempts < maxAttempts) {
+        console.warn(`Error network upload ${file.name}, retry ${attempts}...`);
+        setTimeout(sendXhr, 1000);
+      } else {
+        applyToast(`Koneksi terputus saat mengunggah ${file.name}`, "fa-triangle-exclamation");
+        processNextUpload();
+      }
+    };
+
+    upXhr.send(fd);
+  }
+
+  sendXhr();
 }
 
 let pendingDelItem = null;
