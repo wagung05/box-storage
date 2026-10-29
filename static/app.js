@@ -247,6 +247,12 @@ function showTab(tab) {
   $("browseView").hidden = tab !== "files";
   $panelView.hidden = tab !== "panel";
   $settingsView.hidden = tab !== "settings";
+  
+  // Hide bottom uploadBar when in Panel or Settings to prevent blocking content on mobile!
+  if ($uploadBar) {
+    $uploadBar.hidden = !isAdmin || (tab !== "files");
+  }
+
   qsa(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.tab === tab));
   if (tab === "files") { $entries.style.display = viewMode === "grid" ? "grid" : "block"; $skeleton.hidden = true; }
   else if (tab === "panel") loadPanel();
