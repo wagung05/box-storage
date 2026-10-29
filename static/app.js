@@ -178,6 +178,13 @@ function closeDrawer() { $drawer.classList.remove("open"); $drawerOverlay.classL
 $("menuBtn").addEventListener("click", openDrawer);
 $("drawerClose").addEventListener("click", closeDrawer);
 $("drawerOverlay").addEventListener("click", closeDrawer);
+const $appBrand = $("appBrand");
+if ($appBrand) {
+  $appBrand.addEventListener("click", () => {
+    showTab("files");
+    goDir("/");
+  });
+}
 
 $("drawerLoginForm").addEventListener("submit", e => { e.preventDefault(); doLogin($("drawerPassword").value); });
 
