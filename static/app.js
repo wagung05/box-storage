@@ -1321,35 +1321,73 @@ function openSharesSheet() {
   sh.hidden = false; ov.hidden = false;
   loadShares();
 }
+function shareTypeIcon(name) {
+  const ext = (name.split(".").pop() || "").toLowerCase();
+  if (/\.(mp4|webm|mov|mkv|avi|m4v)$/i.test("." + ext)) return { icon: "fa-film", color: "#ff375f" };
+  if (/\.(jpe?g|png|webp|gif|svg|bmp)$/i.test("." + ext)) return { icon: "fa-image", color: "#30d158" };
+  if (/\.(mp3|wav|ogg|flac|m4a)$/i.test("." + ext)) return { icon: "fa-music", color: "#bf5af2" };
+  if (/\.(zip|rar|7z|tar|gz)$/i.test("." + ext)) return { icon: "fa-file-zipper", color: "#ff9800" };
+  if (/\.(pdf)$/i.test("." + ext)) return { icon: "fa-file-pdf", color: "#ff453a" };
+  if (/\.(apk)$/i.test("." + ext)) return { icon: "fa-android", color: "#3ddc84" };
+  if (!name.includes(".")) return { icon: "fa-folder", color: "var(--accent)" };
+  return { icon: "fa-file-lines", color: "var(--accent)" };
+}
 async function loadShares() {
-  const list = $("sharesList");
+  const list = $("sharesList"), sub = $("sharesCountSub");
   if (!list) return;
-  list.innerHTML = '<div class="skel" style="height:44px"></div><div class="skel" style="height:44px"></div>';
+  list.innerHTML = '<div class="skel" style="height:52px;border-radius:14px;margin-bottom:8px"></div><div class="skel" style="height:52px;border-radius:14px"></div>';
   try {
     const r = await fetch("/api/shares");
     if (r.status === 401) { doLoginPrompt(); return; }
     const d = await r.json();
     const shares = d.shares || [];
+    if (sub) sub.textContent = shares.length ? `${shares.length} tautan publik aktif` : "Tidak ada tautan aktif";
     if (!shares.length) {
-      list.innerHTML = '<p class="muted" style="padding:16px;text-align:center">Belum ada tautan berbagi aktif.</p>';
+      list.innerHTML = `
+        <div class="share-empty-box">
+          <div class="share-empty-icon"><i class="fa-solid fa-link-slash"></i></div>
+          <div style="font-size:13.5px;font-weight:600;color:var(--text)">Belum ada tautan berbagi</div>
+          <div style="font-size:11.5px;color:var(--muted)">Buat tautan baru dengan mengetuk tombol bagikan pada berkas.</div>
+        </div>`;
       return;
     }
     list.innerHTML = shares.map(s => {
-      const exp = s.expires_at ? new Date(s.expires_at * 1000).toLocaleDateString("id-ID") : "Tanpa batas";
-      const cap = s.limit ? s.uses + "/" + s.limit + " dipakai" : "Tak terbatas";
-      return `<div class="share-row"><div class="share-row-main"><div class="share-row-name">${esc(s.name)}</div><div class="share-row-meta">${esc(s.path)} · ${esc(exp)} · ${esc(cap)}</div></div><div class="share-row-acts"><button class="icon-btn" data-copy="${esc(s.url)}" title="Salin tautan"><i class="fa-solid fa-copy"></i></button><button class="icon-btn" data-open="${esc(s.url)}" title="Buka"><i class="fa-solid fa-arrow-up-right-from-square"></i></button><button class="icon-btn danger" data-revoke="${esc(s.token)}" title="Hapus tautan"><i class="fa-solid fa-trash"></i></button></div></div>`;
+      const typeInfo = shareTypeIcon(s.name);
+      const expText = s.expires_at ? new Date(s.expires_at * 1000).toLocaleDateString("id-ID", { day: "numeric", month: "short" }) : null;
+      const capText = s.limit ? `${s.uses}/${s.limit}x` : null;
+      return `
+        <div class="share-row">
+          <div class="share-row-icon" style="background:color-mix(in srgb, ${typeInfo.color} 15%, transparent);color:${typeInfo.color};border-color:color-mix(in srgb, ${typeInfo.color} 30%, transparent)">
+            <i class="fa-solid ${typeInfo.icon}"></i>
+          </div>
+          <div class="share-row-main">
+            <div class="share-row-name" title="${esc(s.name)}">${esc(s.name)}</div>
+            <div class="share-row-meta">
+              <span class="share-badge accent"><i class="fa-solid fa-folder" style="font-size:9px"></i>${esc(s.path.split("/").slice(0, -1).join("/") || "/")}</span>
+              ${expText ? `<span class="share-badge warning"><i class="fa-solid fa-clock" style="font-size:9px"></i>${esc(expText)}</span>` : `<span class="share-badge"><i class="fa-solid fa-infinity" style="font-size:9px"></i>Selamanya</span>`}
+              ${capText ? `<span class="share-badge success"><i class="fa-solid fa-download" style="font-size:9px"></i>${esc(capText)}</span>` : ''}
+              ${s.secure ? `<span class="share-badge" style="color:var(--accent)"><i class="fa-solid fa-shield-halved" style="font-size:9px"></i>Kunci</span>` : ''}
+            </div>
+          </div>
+          <div class="share-row-acts">
+            <button class="share-btn" data-copy="${esc(s.url)}" title="Salin tautan"><i class="fa-solid fa-copy"></i></button>
+            <button class="share-btn" data-open="${esc(s.url)}" title="Buka"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+            <button class="share-btn danger" data-revoke="${esc(s.token)}" title="Hapus tautan"><i class="fa-solid fa-trash"></i></button>
+          </div>
+        </div>`;
     }).join("");
     list.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", () => {
-      navigator.clipboard.writeText(location.origin + b.dataset.copy).then(() => applyToast("Tautan disalin", "fa-copy"));
+      navigator.clipboard.writeText(location.origin + b.dataset.copy).then(() => applyToast("Tautan disalin ke clipboard", "fa-copy"));
     }));
     list.querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () => window.open(b.dataset.open, "_blank")));
     list.querySelectorAll("[data-revoke]").forEach(b => b.addEventListener("click", async () => {
-      if (!confirm("Hapus tautan berbagi ini?")) return;
+      if (!confirm("Hapus tautan berbagi ini? Akses publik akan langsung terputus.")) return;
       await fetch("/api/share", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: b.dataset.revoke }) });
+      applyToast("Tautan dicabut", "fa-trash");
       loadShares();
     }));
   } catch (e) {
-    list.innerHTML = '<p class="muted" style="padding:16px;text-align:center">Gagal memuat tautan.</p>';
+    list.innerHTML = '<p class="muted" style="padding:16px;text-align:center">Gagal memuat tautan berbagi.</p>';
   }
 }
 
