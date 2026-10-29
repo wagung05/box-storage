@@ -527,13 +527,13 @@ async function loadPanel() {
         </div>
         <div class="panel-card">
           <div class="panel-card-header"><div class="panel-card-icon"><i class="fa-solid fa-file"></i></div>
-            <div class="panel-card-info"><div class="panel-card-title">Berkas</div><div class="panel-card-value">${(d.files || 0).toLocaleString()} berkas</div></div>
+            <div class="panel-card-info"><div class="panel-card-title">Berkas</div><div class="panel-card-value">${(d.files || 0).toLocaleString()}<span style="font-size:14px;color:var(--muted);font-weight:500"> berkas</span></div></div>
           </div>
-          <div class="cat-grid">${Object.entries(cats).map(([k, v]) => `<span class="cat-chip"><i class="fa-solid ${icons[k] || "fa-file"}</i>${k}: ${v}</span>`).join("")}</div>
+          <div class="cat-grid">${Object.entries(cats).map(([k, v]) => `<div class="cat-chip"><i class="fa-solid ${icons[k] || "fa-file"}"></i><b>${v}</b><span>${k}</span></div>`).join("")}</div>
                   </div>
-                  <div class="panel-card">
+                  <div class="panel-card panel-icon-violet">
                     <div class="panel-card-header"><div class="panel-card-icon"><i class="fa-solid fa-chart-column"></i></div>
-                      <div class="panel-card-info"><div class="panel-card-title">Analitik</div><div class="panel-card-value" style="font-size:13px">pemakaian per tipe & folder terbesar</div></div>
+                      <div class="panel-card-info"><div class="panel-card-title">Analitik</div><div class="panel-card-value" style="font-size:15px;font-weight:600">pemakaian per tipe & folder</div></div>
                     </div>
                     <div id="analyticsBody"><div style="color:var(--muted);font-size:13px">Memuat…</div></div>
                   </div>
