@@ -174,13 +174,13 @@ $("drawerLogout").addEventListener("click", () => {
 
 // ===== THEME =====
 function applyTheme(isDark) {
-  document.documentElement.setAttribute("data-theme", isDark ? "dark" : "light");
-  const bg = isDark ? "#06060a" : "#f2f2f7";
-  document.documentElement.style.setProperty("--bg", bg);
-  document.documentElement.style.setProperty("color-scheme", isDark ? "dark" : "light");
-  document.body.style.background = bg;
+  const theme = isDark ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", theme);
+  document.body.setAttribute("data-theme", theme);
   document.body.classList.toggle("dark", isDark);
-  document.documentElement.style.colorScheme = isDark ? "dark" : "light";
+  document.body.classList.toggle("light", !isDark);
+  document.documentElement.style.colorScheme = theme;
+  document.body.style.background = "";
   const v = document.getElementById("drawerThemeVal");
   if (v) v.textContent = isDark ? "Mode Gelap" : "Mode Terang";
   const h = document.querySelector("#themeBtn .ti");
