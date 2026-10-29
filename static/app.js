@@ -616,6 +616,50 @@ function newFolder() {
 }
 
 const $uploadZone = $("uploadZone");
+const $dropOverlay = $("dropOverlay"), $dropTargetDir = $("dropTargetDir");
+let dragCounter = 0;
+
+window.addEventListener("dragenter", e => {
+  if (!isAdmin) return;
+  if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes("Files")) {
+    dragCounter++;
+    if ($dropOverlay) {
+      if ($dropTargetDir) {
+        $dropTargetDir.textContent = "Unggah otomatis ke " + (currentPath === "/" ? "Beranda" : currentPath);
+      }
+      $dropOverlay.hidden = false;
+    }
+  }
+});
+
+window.addEventListener("dragover", e => {
+  if (!isAdmin) return;
+  if (e.dataTransfer && e.dataTransfer.types && Array.from(e.dataTransfer.types).includes("Files")) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  }
+});
+
+window.addEventListener("dragleave", e => {
+  if (!isAdmin) return;
+  dragCounter--;
+  if (dragCounter <= 0) {
+    dragCounter = 0;
+    if ($dropOverlay) $dropOverlay.hidden = true;
+  }
+});
+
+window.addEventListener("drop", e => {
+  if (!isAdmin) return;
+  e.preventDefault();
+  dragCounter = 0;
+  if ($dropOverlay) $dropOverlay.hidden = true;
+  if ($uploadZone) $uploadZone.classList.remove("drag");
+  if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+    uploadFilesBatch(Array.from(e.dataTransfer.files));
+  }
+});
+
 $fabUpload.addEventListener("click", () => $fileInput.click());
 $fileInput.addEventListener("change", () => {
   if ($fileInput.files && $fileInput.files.length) {

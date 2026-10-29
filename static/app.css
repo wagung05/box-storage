@@ -1005,6 +1005,74 @@ html[data-theme="light"] .sel-btn{background:rgba(0,0,0,.05);border-color:rgba(0
 html[data-theme="light"] .sel-btn:hover{background:rgba(0,0,0,.09)}
 .sel-btn.danger{color:#ff453a}
 .sel-btn.close{background:transparent;border-color:transparent}
+/* ===== FULLSCREEN INTERACTIVE DROP OVERLAY (APPLE LIQUID GLASS) ===== */
+.drop-overlay {
+  position: fixed; inset: 0; z-index: 300;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(6, 6, 10, 0.65);
+  backdrop-filter: blur(28px) saturate(190%);
+  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  padding: 24px;
+  animation: dropFadeIn .2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+html[data-theme="light"] .drop-overlay {
+  background: rgba(245, 245, 247, 0.65);
+}
+@keyframes dropFadeIn {
+  from { opacity: 0; backdrop-filter: blur(0px); }
+  to { opacity: 1; backdrop-filter: blur(28px); }
+}
+.drop-glass-card {
+  width: min(520px, 90vw);
+  background: var(--glass-strong);
+  border: 2px dashed var(--accent);
+  border-radius: 28px;
+  padding: 48px 32px;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6), 0 0 40px var(--accent-glow), inset 0 1px 2px rgba(255, 255, 255, 0.35);
+  transform: scale(0.96);
+  animation: dropCardPop .25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+html[data-theme="light"] .drop-glass-card {
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 30px var(--accent-glow), inset 0 1px 2px rgba(255, 255, 255, 0.9);
+}
+@keyframes dropCardPop {
+  to { transform: scale(1); }
+}
+.drop-icon-wrap {
+  width: 90px; height: 90px; border-radius: 24px;
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  display: grid; place-items: center;
+  color: var(--accent); font-size: 38px;
+  margin-bottom: 20px;
+  box-shadow: 0 12px 30px var(--accent-glow);
+}
+.drop-cloud-anim {
+  animation: cloudBounce 1.5s infinite ease-in-out;
+}
+@keyframes cloudBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.drop-title {
+  font-size: 26px; font-weight: 700; color: var(--text);
+  letter-spacing: -0.02em; margin-bottom: 8px;
+}
+.drop-sub {
+  font-size: 14.5px; color: var(--muted); font-weight: 500;
+  margin-bottom: 20px;
+}
+.drop-badge {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--accent); color: #fff;
+  font-size: 13.5px; font-weight: 700;
+  padding: 8px 18px; border-radius: 999px;
+  box-shadow: 0 6px 20px var(--accent-glow);
+}
+
 /* ==== CONFLICT MODAL (WINDOWS EXPLORER STYLE) ==== */
 .conflict-opt-btn:hover {
   background: var(--glass-hi) !important;

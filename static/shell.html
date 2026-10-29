@@ -39,7 +39,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/fa/all.min.css">
-<link rel="stylesheet" href="/static/app.css?v=36">
+<link rel="stylesheet" href="/static/app.css?v=37">
 </head>
 <body>
 
@@ -176,6 +176,18 @@
   </nav>
 
   <input type="file" id="fileInput" multiple hidden>
+</div>
+
+<!-- ===== FULLSCREEN DRAG & DROP OVERLAY (APPLE LIQUID GLASS) ===== -->
+<div id="dropOverlay" class="drop-overlay" hidden>
+  <div class="drop-glass-card">
+    <div class="drop-icon-wrap">
+      <i class="fa-solid fa-cloud-arrow-up drop-cloud-anim"></i>
+    </div>
+    <div class="drop-title">Lepaskan file di sini</div>
+    <div class="drop-sub" id="dropTargetDir">Unggah otomatis ke folder saat ini</div>
+    <div class="drop-badge"><i class="fa-solid fa-plus"></i> Copy</div>
+  </div>
 </div>
 
 <!-- ===== COMMAND PALETTE ===== -->
@@ -414,6 +426,6 @@
   </div>
 </div>
 
-<script src="/static/app.js?v=35"></script>
+<script src="/static/app.js?v=36"></script>
 </body>
 </html>
