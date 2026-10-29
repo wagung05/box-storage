@@ -39,7 +39,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/fa/all.min.css">
-<link rel="stylesheet" href="/static/app.css?v=35">
+<link rel="stylesheet" href="/static/app.css?v=36">
 </head>
 <body>
 
@@ -313,6 +313,55 @@
   </form>
 </div>
 
+<!-- ===== FILE CONFLICT / DUPLICATE SHEET (WINDOWS EXPLORER STYLE) ===== -->
+<div class="scrim" id="conflictOverlay" hidden style="z-index:230"></div>
+<div class="sheet" id="conflictSheet" role="dialog" aria-modal="true" aria-label="Berkas Sudah Ada" hidden style="max-width:440px;z-index:235">
+  <div class="sheet-head">
+    <div class="sheet-ico" style="color:var(--warning);background:color-mix(in srgb, var(--warning) 16%, transparent);border-color:color-mix(in srgb, var(--warning) 30%, transparent)"><i class="fa-solid fa-copy"></i></div>
+    <div class="sheet-ttl"><div class="sheet-title">Berkas Sudah Ada</div><div class="sheet-sub" id="conflictSub">Nama berkas sama di folder ini</div></div>
+  </div>
+  <div class="sheet-body" style="padding:16px 20px">
+    <p id="conflictMsg" style="font-size:13.5px;color:var(--text);line-height:1.5;margin-bottom:14px;word-break:break-all">Berkas dengan nama ini sudah ada di folder tujuan. Apa yang ingin kamu lakukan?</p>
+    
+    <div class="conflict-options" style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
+      <!-- Opsi 1: Timpa / Replace -->
+      <button type="button" class="conflict-opt-btn" id="conflictReplaceBtn" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:13px;background:var(--glass-strong);border:1px solid var(--border-hi);color:var(--text);cursor:pointer;text-align:left;transition:all .15s">
+        <i class="fa-solid fa-arrows-rotate" style="font-size:18px;color:var(--accent);width:24px;text-align:center"></i>
+        <div>
+          <div style="font-weight:600;font-size:14px">Ganti Berkas (Replace)</div>
+          <div style="font-size:12px;color:var(--muted)">Timpa berkas lama dengan berkas yang baru diunggah</div>
+        </div>
+      </button>
+
+      <!-- Opsi 2: Simpan Keduanya / Keep Both (Beri nama salinan (1), (2), dst) -->
+      <button type="button" class="conflict-opt-btn" id="conflictKeepBothBtn" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:13px;background:var(--glass-strong);border:1px solid var(--border-hi);color:var(--text);cursor:pointer;text-align:left;transition:all .15s">
+        <i class="fa-solid fa-clone" style="font-size:18px;color:var(--success);width:24px;text-align:center"></i>
+        <div>
+          <div style="font-weight:600;font-size:14px">Simpan Keduanya (Keep Both)</div>
+          <div style="font-size:12px;color:var(--muted)">Buat berkas baru dengan nama salinan otomatis (1)</div>
+        </div>
+      </button>
+
+      <!-- Opsi 3: Lewati / Skip -->
+      <button type="button" class="conflict-opt-btn" id="conflictSkipBtn" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:13px;background:var(--glass);border:1px solid var(--border);color:var(--text);cursor:pointer;text-align:left;transition:all .15s">
+        <i class="fa-solid fa-forward" style="font-size:18px;color:var(--muted);width:24px;text-align:center"></i>
+        <div>
+          <div style="font-weight:600;font-size:14px">Lewati Berkas Ini (Skip)</div>
+          <div style="font-size:12px;color:var(--muted)">Jangan unggah berkas ini dan biarkan berkas lama</div>
+        </div>
+      </button>
+    </div>
+
+    <!-- Checkbox Terapkan ke semua -->
+    <div style="display:flex;align-items:center;gap:10px;padding:4px 2px;margin-bottom:14px;cursor:pointer" id="conflictApplyAllWrap">
+      <input type="checkbox" id="conflictApplyAll" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent)">
+      <label for="conflictApplyAll" style="font-size:13px;color:var(--text-2);cursor:pointer;user-select:none">Lakukan tindakan ini untuk semua berkas berikutnya yang kembar</label>
+    </div>
+
+    <button type="button" id="conflictCancelAll" style="width:100%;padding:10px;border-radius:12px;background:none;border:none;color:var(--muted);font-weight:600;font-size:13px;cursor:pointer">Batalkan Semua Sisa Upload</button>
+  </div>
+</div>
+
 <!-- ===== CONFIRM DELETE SHEET ===== -->
 <div class="scrim" id="delOverlay" hidden></div>
 <div class="sheet" id="delSheet" role="dialog" aria-modal="true" aria-label="Konfirmasi Hapus" hidden style="max-width:380px">
@@ -365,6 +414,6 @@
   </div>
 </div>
 
-<script src="/static/app.js?v=33"></script>
+<script src="/static/app.js?v=34"></script>
 </body>
 </html>

@@ -377,10 +377,34 @@ def upload():
     if not f:
         return jsonify({"error": "no file"}), 400
     safe = os.path.basename(f.filename)
+    conflict_action = request.form.get("conflict", "").strip().lower()
+    # conflict: 'check' | 'replace' | 'keep_both' | 'skip'
     dst = target_dir / safe
+    if dst.exists():
+        if conflict_action == "check":
+            stat = dst.stat()
+            return jsonify({
+                "conflict": True,
+                "name": safe,
+                "existing_size": stat.st_size,
+                "existing_mtime": stat.st_mtime
+            })
+        elif conflict_action == "skip":
+            return jsonify({"ok": True, "skipped": True, "path": "/" + str(dst.relative_to(STORAGE_DIR))})
+        elif conflict_action == "keep_both":
+            base, ext = os.path.splitext(safe)
+            c = 1
+            while True:
+                candidate = f"{base} ({c}){ext}"
+                dst = target_dir / candidate
+                if not dst.exists():
+                    safe = candidate
+                    break
+                c += 1
+        # if 'replace' or default: overwrite dst
     f.save(str(dst))
     audit("upload", f"{path}/{safe}")
-    return jsonify({"ok": True, "path": "/" + str(dst.relative_to(STORAGE_DIR))})
+    return jsonify({"ok": True, "path": "/" + str(dst.relative_to(STORAGE_DIR)), "name": safe})
 
 def _safe(rel):
     target = (STORAGE_DIR / rel.lstrip("/")).resolve()

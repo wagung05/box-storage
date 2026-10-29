@@ -651,10 +651,54 @@ function cancelUploadQueue() {
   loadList(currentPath);
 }
 
+let conflictDecisionGlobal = null; // 'replace' | 'keep_both' | 'skip'
+let conflictResolver = null;
+
+function promptConflictResolution(file, existingInfo) {
+  return new Promise(resolve => {
+    if (conflictDecisionGlobal) {
+      resolve(conflictDecisionGlobal);
+      return;
+    }
+    const sh = $("conflictSheet"), ov = $("conflictOverlay");
+    const sub = $("conflictSub"), msg = $("conflictMsg");
+    if (sub) sub.textContent = file.name;
+    if (msg) {
+      const sizeStr = formatBytes(file.size);
+      const exSizeStr = existingInfo && existingInfo.existing_size ? formatBytes(existingInfo.existing_size) : "";
+      msg.innerHTML = `Berkas <b>"${esc(file.name)}"</b> (${sizeStr}) sudah ada di folder ini${exSizeStr ? ` (ukuran lama: ${exSizeStr})` : ""}. Pilih tindakan:`;
+    }
+    const chk = $("conflictApplyAll");
+    if (chk) chk.checked = false;
+
+    conflictResolver = (decision) => {
+      if (chk && chk.checked) {
+        conflictDecisionGlobal = decision;
+      }
+      if (ov) ov.hidden = true;
+      if (sh) sh.hidden = true;
+      conflictResolver = null;
+      resolve(decision);
+    };
+
+    if (ov) ov.hidden = false;
+    if (sh) sh.hidden = false;
+  });
+}
+
+const $confReplace = $("conflictReplaceBtn"); if ($confReplace) $confReplace.addEventListener("click", () => conflictResolver && conflictResolver("replace"));
+const $confKeepBoth = $("conflictKeepBothBtn"); if ($confKeepBoth) $confKeepBoth.addEventListener("click", () => conflictResolver && conflictResolver("keep_both"));
+const $confSkip = $("conflictSkipBtn"); if ($confSkip) $confSkip.addEventListener("click", () => conflictResolver && conflictResolver("skip"));
+const $confCancelAll = $("conflictCancelAll"); if ($confCancelAll) $confCancelAll.addEventListener("click", () => {
+  if (conflictResolver) conflictResolver("skip");
+  cancelUploadQueue();
+});
+
 function uploadFilesBatch(files) {
   if (!files || !files.length) return;
   if (!isAdmin) { doLoginPrompt(); return; }
   
+  conflictDecisionGlobal = null; // reset decision per batch upload
   uploadQueue = uploadQueue.concat(files);
   uploadQueueTotal = uploadQueue.length + uploadQueueCurrentIndex;
   
@@ -668,8 +712,9 @@ function uploadFilesBatch(files) {
 async function processNextUpload() {
   if (!uploadQueue.length) {
     isUploadingBatch = false;
+    conflictDecisionGlobal = null;
     upEnd();
-    applyToast(`Semua ${uploadQueueTotal} berkas berhasil diunggah!`, "fa-circle-check");
+    applyToast(`Semua ${uploadQueueTotal} berkas selesai diproses!`, "fa-circle-check");
     loadList(currentPath);
     return;
   }
@@ -699,9 +744,34 @@ async function processNextUpload() {
     return;
   }
 
+  // Check file conflict first
+  let conflictMode = conflictDecisionGlobal || "";
+  if (!conflictMode) {
+    try {
+      const checkFd = new FormData();
+      checkFd.append("file", file);
+      checkFd.append("path", currentPath);
+      checkFd.append("conflict", "check");
+      const checkRes = await fetch(API_BASE + "/api/upload", { method: "POST", body: checkFd });
+      if (checkRes.ok) {
+        const checkData = await checkRes.json();
+        if (checkData.conflict) {
+          conflictMode = await promptConflictResolution(file, checkData);
+        }
+      }
+    } catch(e) {}
+  }
+
+  if (conflictMode === "skip") {
+    applyToast(`Dilewati: ${file.name}`, "fa-forward");
+    processNextUpload();
+    return;
+  }
+
   const fd = new FormData();
   fd.append("file", file);
   fd.append("path", currentPath);
+  if (conflictMode) fd.append("conflict", conflictMode);
 
   upXhr = new XMLHttpRequest();
   upXhr.open("POST", API_BASE + "/api/upload");
@@ -719,7 +789,6 @@ async function processNextUpload() {
       return;
     }
     if (st >= 200 && st < 300) {
-      // success, go to next file
       processNextUpload();
     } else {
       applyToast(`Gagal mengunggah ${file.name}`, "fa-triangle-exclamation");
