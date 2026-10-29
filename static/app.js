@@ -617,29 +617,120 @@ function newFolder() {
 
 const $uploadZone = $("uploadZone");
 $fabUpload.addEventListener("click", () => $fileInput.click());
-$fileInput.addEventListener("change", () => { if ($fileInput.files[0]) uploadFile($fileInput.files[0]); $fileInput.value = ""; });
+$fileInput.addEventListener("change", () => {
+  if ($fileInput.files && $fileInput.files.length) {
+    uploadFilesBatch(Array.from($fileInput.files));
+  }
+  $fileInput.value = "";
+ });
 $uploadZone.addEventListener("click", () => $fileInput.click());
 $uploadZone.addEventListener("dragover", e => { e.preventDefault(); $uploadZone.classList.add("drag"); });
 $uploadZone.addEventListener("dragleave", () => $uploadZone.classList.remove("drag"));
 $uploadZone.addEventListener("drop", e => {
   e.preventDefault(); $uploadZone.classList.remove("drag");
-  if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
+  if (e.dataTransfer.files && e.dataTransfer.files.length) {
+    uploadFilesBatch(Array.from(e.dataTransfer.files));
+  }
 });
 
 let upXhr = null;
-function uploadFile(file) {
-  if (inVault()) {
-    const fd = new FormData(); fd.append("file", file);
-    return vaultGet("upload", { method: "POST", body: fd }).then(r => { if (r.ok) loadList(currentPath); });
+let uploadQueue = [];
+let uploadQueueTotal = 0;
+let uploadQueueCurrentIndex = 0;
+let isUploadingBatch = false;
+
+function cancelUploadQueue() {
+  if (upXhr) {
+    try { upXhr.abort(); } catch(e){}
+    upXhr = null;
   }
+  uploadQueue = [];
+  isUploadingBatch = false;
+  upEnd();
+  applyToast("Antrean upload dibatalkan", "fa-xmark");
+  loadList(currentPath);
+}
+
+function uploadFilesBatch(files) {
+  if (!files || !files.length) return;
+  if (!isAdmin) { doLoginPrompt(); return; }
+  
+  uploadQueue = uploadQueue.concat(files);
+  uploadQueueTotal = uploadQueue.length + uploadQueueCurrentIndex;
+  
+  if (!isUploadingBatch) {
+    uploadQueueTotal = uploadQueue.length;
+    uploadQueueCurrentIndex = 0;
+    processNextUpload();
+  }
+}
+
+async function processNextUpload() {
+  if (!uploadQueue.length) {
+    isUploadingBatch = false;
+    upEnd();
+    applyToast(`Semua ${uploadQueueTotal} berkas berhasil diunggah!`, "fa-circle-check");
+    loadList(currentPath);
+    return;
+  }
+
+  isUploadingBatch = true;
+  uploadQueueCurrentIndex++;
+  const file = uploadQueue.shift();
+  const currentIdx = uploadQueueCurrentIndex;
+  const totalCount = uploadQueueTotal;
+
+  upStart(file.name, currentIdx, totalCount);
+
+  if (inVault()) {
+    const fd = new FormData();
+    fd.append("file", file);
+    try {
+      const r = await vaultGet("upload", { method: "POST", body: fd });
+      if (r.ok) {
+        processNextUpload();
+      } else {
+        applyToast(`Gagal mengunggah ${file.name} ke Vault`, "fa-triangle-exclamation");
+        processNextUpload();
+      }
+    } catch(err) {
+      processNextUpload();
+    }
+    return;
+  }
+
   const fd = new FormData();
-  fd.append("file", file); fd.append("path", currentPath);
-  upStart(file.name);
+  fd.append("file", file);
+  fd.append("path", currentPath);
+
   upXhr = new XMLHttpRequest();
   upXhr.open("POST", API_BASE + "/api/upload");
-  upXhr.upload.onprogress = e => { if (e.lengthComputable) upSet(e.loaded, e.total, file.size); };
-  upXhr.onload = () => { const st = upXhr.status; upEnd(); upXhr = null; if (st === 401) doLoginPrompt(); loadList(currentPath); };
-  upXhr.onerror = () => { upEnd(); upXhr = null; alert("Upload gagal."); };
+  upXhr.upload.onprogress = e => {
+    if (e.lengthComputable) {
+      upSet(e.loaded, e.total, currentIdx, totalCount);
+    }
+  };
+  upXhr.onload = () => {
+    const st = upXhr.status;
+    upXhr = null;
+    if (st === 401) {
+      cancelUploadQueue();
+      doLoginPrompt();
+      return;
+    }
+    if (st >= 200 && st < 300) {
+      // success, go to next file
+      processNextUpload();
+    } else {
+      applyToast(`Gagal mengunggah ${file.name}`, "fa-triangle-exclamation");
+      processNextUpload();
+    }
+  };
+  upXhr.onerror = () => {
+    upXhr = null;
+    applyToast(`Koneksi terputus saat mengunggah ${file.name}`, "fa-triangle-exclamation");
+    processNextUpload();
+  };
   upXhr.send(fd);
 }
 
@@ -1215,12 +1306,34 @@ $("selDel").addEventListener("click", async () => {
   setSelMode(false); loadList(currentPath);
 });
 
-// ===== UPLOAD PROGRESS BAR =====
-const $upBar = $("upBar"), $upName = $("upName"), $upPct = $("upPct"), $upFill = $("upFill");
-function upStart(name) { $upName.textContent = name; $upPct.textContent = "0%"; $upFill.style.width = "0%"; $upBar.hidden = false; }
-function upSet(loaded, total) { const p = total > 0 ? Math.round(loaded / total * 100) : 0; $upPct.textContent = p + "%"; $upFill.style.width = p + "%"; }
-function upEnd() { $upBar.hidden = true; }
-$("upCancel").addEventListener("click", () => { if (upXhr) upXhr.abort(); upEnd(); });
+// ===== UPLOAD PROGRESS BAR (MASS QUEUE & LIQUID GLASS) =====
+const $upBar = $("upBar"), $upName = $("upName"), $upPct = $("upPct"), $upFill = $("upFill"), $upDetail = $("upDetail");
+
+function upStart(name, currentIdx = 1, totalCount = 1) {
+  if ($upName) $upName.textContent = name;
+  if ($upDetail) $upDetail.textContent = totalCount > 1 ? `${currentIdx} dari ${totalCount} berkas` : "Sedang diproses...";
+  if ($upPct) $upPct.textContent = "0%";
+  if ($upFill) $upFill.style.width = "0%";
+  if ($upBar) $upBar.hidden = false;
+}
+
+function upSet(loaded, total, currentIdx = 1, totalCount = 1) {
+  const p = total > 0 ? Math.round(loaded / total * 100) : 0;
+  if ($upPct) $upPct.textContent = p + "%";
+  if ($upFill) $upFill.style.width = p + "%";
+  if ($upDetail) $upDetail.textContent = totalCount > 1 ? `${currentIdx} dari ${totalCount} berkas (${p}%)` : `${p}% terunggah`;
+}
+
+function upEnd() {
+  if ($upBar) $upBar.hidden = true;
+}
+
+const $upCancelBtn = $("upCancel");
+if ($upCancelBtn) {
+  $upCancelBtn.addEventListener("click", () => {
+    cancelUploadQueue();
+  });
+}
 
 // ===== TRASH =====
 const $trashSheet = $("trashSheet"), $trashOv = $("trashOverlay"), $trashList = $("trashList"), $trashEmpty = $("trashEmpty"), $trashEmptyState = $("trashEmptyState");

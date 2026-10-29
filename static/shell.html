@@ -39,7 +39,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/fa/all.min.css">
-<link rel="stylesheet" href="/static/app.css?v=34">
+<link rel="stylesheet" href="/static/app.css?v=35">
 </head>
 <body>
 
@@ -175,7 +175,7 @@
     <button class="nav-item" data-tab="settings" id="navSettings" hidden><i class="fa-solid fa-gear"></i><span>Setelan</span></button>
   </nav>
 
-  <input type="file" id="fileInput" hidden>
+  <input type="file" id="fileInput" multiple hidden>
 </div>
 
 <!-- ===== COMMAND PALETTE ===== -->
@@ -343,13 +343,28 @@
   <div class="preview-box" id="previewBox"></div>
 </div>
 
-<!-- ===== UPLOAD PROGRESS ===== -->
+<!-- ===== UPLOAD PROGRESS (LIQUID GLASS) ===== -->
 <div class="upbar" id="upBar" hidden>
-  <div class="up-info"><span id="upName">Mengunggah…</span><span id="upPct">0%</span></div>
-  <div class="progress-bar up-progress"><div class="progress-fill" id="upFill" style="width:0%"></div></div>
-  <button class="up-cancel" id="upCancel"><i class="fa-solid fa-xmark"></i></button>
+  <div class="up-glass-inner">
+    <div class="up-head-row">
+      <div class="up-status">
+        <i class="fa-solid fa-cloud-arrow-up up-pulse-icon"></i>
+        <div class="up-title-wrap">
+          <span id="upName">Mengunggah berkas...</span>
+          <span id="upDetail" class="up-detail">1 dari 131 berkas</span>
+        </div>
+      </div>
+      <div class="up-badges">
+        <span id="upPct" class="up-pct-badge">0%</span>
+        <button class="up-cancel" id="upCancel" title="Batalkan antrean upload"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+    <div class="progress-bar up-progress">
+      <div class="progress-fill" id="upFill" style="width:0%"></div>
+    </div>
+  </div>
 </div>
 
-<script src="/static/app.js?v=32"></script>
+<script src="/static/app.js?v=33"></script>
 </body>
 </html>
