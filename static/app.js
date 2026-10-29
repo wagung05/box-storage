@@ -748,8 +748,12 @@ function uploadFilesBatch(files) {
   if (!files || !files.length) return;
   if (!isAdmin) { doLoginPrompt(); return; }
   
+  // Snap upload target directory to the folder currently opened!
+  const targetDir = currentPath || "/";
+  const wrappedFiles = files.map(f => ({ file: f, uploadPath: targetDir }));
+
   conflictDecisionGlobal = null; // reset decision per batch upload
-  uploadQueue = uploadQueue.concat(files);
+  uploadQueue = uploadQueue.concat(wrappedFiles);
   uploadQueueTotal = uploadQueue.length + uploadQueueCurrentIndex;
   
   if (!isUploadingBatch) {
@@ -771,7 +775,9 @@ async function processNextUpload() {
 
   isUploadingBatch = true;
   uploadQueueCurrentIndex++;
-  const file = uploadQueue.shift();
+  const queueItem = uploadQueue.shift();
+  const file = queueItem.file || queueItem;
+  const destDir = queueItem.uploadPath || currentPath || "/";
   const currentIdx = uploadQueueCurrentIndex;
   const totalCount = uploadQueueTotal;
 
@@ -796,7 +802,7 @@ async function processNextUpload() {
 
   // Check file conflict locally from remoteResults without extra network roundtrips!
   let conflictMode = conflictDecisionGlobal || "";
-  if (!conflictMode && remoteResults && Array.isArray(remoteResults)) {
+  if (!conflictMode && remoteResults && Array.isArray(remoteResults) && destDir === currentPath) {
     const existing = remoteResults.find(it => !it.is_dir && it.name.toLowerCase() === file.name.toLowerCase());
     if (existing) {
       conflictMode = await promptConflictResolution(file, { existing_size: existing.size, existing_mtime: existing.mtime });
@@ -811,7 +817,7 @@ async function processNextUpload() {
 
   const fd = new FormData();
   fd.append("file", file);
-  fd.append("path", currentPath);
+  fd.append("path", destDir);
   if (conflictMode) fd.append("conflict", conflictMode);
 
   let attempts = 0;
