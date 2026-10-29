@@ -138,6 +138,9 @@ function applyAuth() {
   $("drawerLoggedActions").hidden = !isAdmin;
   $navPanel.hidden = !isAdmin;
   $navSettings.hidden = !isAdmin;
+  qsa('.drawer-item[data-nav="panel"], .drawer-item[data-nav="settings"], .drawer-item[data-nav="folder"]').forEach(el => {
+    el.hidden = !isAdmin;
+  });
   if (isAdmin) { $("drawerLogout").style.display = ""; }
   render();
 }
@@ -479,15 +482,15 @@ function render() {
       thumb = `<div class="entry-thumb">${fileArt(cat, item.ext)}</div>`;
     }
 
-    let actions;
+    let actions = "";
     if (inv) {
-      actions = `<div class="entry-actions"><button class="entry-act" data-act="dl" title="Unduh"><i class="fa-solid fa-arrow-down-to-line"></i></button><button class="entry-act danger" data-act="del" title="Hapus"><i class="fa-solid fa-trash"></i></button></div>`;
+      actions = `<div class="entry-actions"><button class="entry-act" data-act="dl" title="Unduh"><i class="fa-solid fa-arrow-down-to-line"></i></button>${isAdmin ? '<button class="entry-act danger" data-act="del" title="Hapus"><i class="fa-solid fa-trash"></i></button>' : ''}</div>`;
     } else if (item.vault) {
       actions = "";
     } else if (item.is_dir) {
-      actions = `<div class="entry-actions"><button class="entry-act" data-act="share" title="Bagikan"><i class="fa-solid fa-share-nodes"></i></button><button class="entry-act" data-act="zip" title="Unduh ZIP"><i class="fa-solid fa-file-zipper"></i></button><button class="entry-act danger" data-act="del" title="Hapus"><i class="fa-solid fa-trash"></i></button></div>`;
+      actions = `<div class="entry-actions"><button class="entry-act" data-act="share" title="Bagikan"><i class="fa-solid fa-share-nodes"></i></button>${isAdmin ? '<button class="entry-act" data-act="zip" title="Unduh ZIP"><i class="fa-solid fa-file-zipper"></i></button><button class="entry-act danger" data-act="del" title="Hapus"><i class="fa-solid fa-trash"></i></button>' : ''}</div>`;
     } else {
-      actions = `<div class="entry-actions"><button class="entry-act" data-act="share" title="Bagikan"><i class="fa-solid fa-share-nodes"></i></button><button class="entry-act danger" data-act="del" title="Hapus"><i class="fa-solid fa-trash"></i></button></div>`;
+      actions = `<div class="entry-actions"><button class="entry-act" data-act="share" title="Bagikan"><i class="fa-solid fa-share-nodes"></i></button>${isAdmin ? '<button class="entry-act danger" data-act="del" title="Hapus"><i class="fa-solid fa-trash"></i></button>' : ''}</div>`;
     }
 
     const chk = selMode && !item.vault
@@ -775,11 +778,13 @@ async function loadSettings() {
     // Bind Accent dots
     qsa(".accent-dot", $settingsView).forEach(dot => dot.addEventListener("click", () => {
       applyAccent(dot.dataset.acc);
+      applyToast("Aksen warna diperbarui: " + dot.title);
     }));
 
     // Bind View Mode Select
     $("settingViewMode").addEventListener("change", e => {
       setView(e.target.value);
+      applyToast("Tampilan default diatur ke " + (e.target.value === "grid" ? "Kisi" : "Daftar"));
     });
 
     // Bind Sort Selects
@@ -787,11 +792,13 @@ async function loadSettings() {
       sortField = e.target.value;
       localStorage.setItem("box_sort_field", sortField);
       render();
+      applyToast("Pengurutan berkas diperbarui");
     });
     $("settingSortOrder").addEventListener("change", e => {
       sortOrder = e.target.value;
       localStorage.setItem("box_sort_order", sortOrder);
       render();
+      applyToast("Arah pengurutan diperbarui");
     });
 
     // Bind Vault Autolock
@@ -799,6 +806,7 @@ async function loadSettings() {
       vaultAutoLockMin = +e.target.value;
       localStorage.setItem("box_vault_autolock", vaultAutoLockMin);
       touchVaultActivity();
+      applyToast(vaultAutoLockMin > 0 ? `Auto-lock diset ${vaultAutoLockMin} menit` : "Auto-lock dinonaktifkan");
     });
 
     // Bind Toggles
@@ -1011,7 +1019,27 @@ function vaultCat(ext) {
   return m[x] || "other";
 }
 function inVault() { return currentPath === VAULT_PATH; }
-function setVaultState() { $("drawerVaultState").textContent = vaultToken ? "Terbuka" : "Terkunci"; }
+function applyToast(msg, icon = "fa-check") {
+  let t = document.getElementById("appToast");
+  if (!t) {
+    t = document.createElement("div");
+    t.id = "appToast";
+    t.style.cssText = "position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--glass-strong);border:1px solid var(--border-hi);color:var(--text);padding:10px 18px;border-radius:14px;font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px;z-index:999;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);box-shadow:0 12px 30px rgba(0,0,0,.35);transition:opacity .25s var(--ease),transform .25s var(--ease);opacity:0;pointer-events:none";
+    document.body.appendChild(t);
+  }
+  t.innerHTML = `<i class="fa-solid ${icon}" style="color:var(--accent)"></i><span>${msg}</span>`;
+  t.style.opacity = "1";
+  t.style.transform = "translateX(-50%) translateY(0)";
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => {
+    t.style.opacity = "0";
+    t.style.transform = "translateX(-50%) translateY(10px)";
+  }, 2200);
+}
+function setVaultState() {
+  const el = $("drawerVaultState");
+  if (el) el.textContent = vaultToken ? "Terbuka" : "Terkunci";
+}
 function openPin() { $pinOv.hidden = false; $pinSheet.hidden = false; $pinInput.value = ""; $pinErr.textContent = ""; setTimeout(() => $pinInput.focus(), 40); }
 function closePin() { $pinOv.hidden = true; $pinSheet.hidden = true; }
 async function doUnlock() {
