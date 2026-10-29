@@ -370,7 +370,7 @@ def trash_empty():
 def upload():
     path = request.form.get("path", "/")
     target_dir = (STORAGE_DIR / path.lstrip("/")).resolve()
-    if not str(target_dir).startswith(str(STORAGE_DIR.resolve())):
+    if not target_dir.is_relative_to(STORAGE_DIR.resolve()):
         return jsonify({"error": "invalid"}), 400
     target_dir.mkdir(parents=True, exist_ok=True)
     f = request.files.get("file")
@@ -405,6 +405,22 @@ def upload():
     f.save(str(dst))
     audit("upload", f"{path}/{safe}")
     return jsonify({"ok": True, "path": "/" + str(dst.relative_to(STORAGE_DIR)), "name": safe})
+
+@app.route("/api/exists", methods=["GET"])
+@admin_required
+def exists_check():
+    path = request.args.get("path", "/")
+    name = os.path.basename(request.args.get("name", ""))
+    if not name:
+        return jsonify({"error": "no name"}), 400
+    target_dir = (STORAGE_DIR / path.lstrip("/")).resolve()
+    if not target_dir.is_relative_to(STORAGE_DIR.resolve()):
+        return jsonify({"error": "invalid"}), 400
+    dst = target_dir / name
+    if dst.exists():
+        stat = dst.stat()
+        return jsonify({"conflict": True, "name": name, "existing_size": stat.st_size, "existing_mtime": stat.st_mtime})
+    return jsonify({"conflict": False})
 
 def _safe(rel):
     target = (STORAGE_DIR / rel.lstrip("/")).resolve()
@@ -1070,7 +1086,7 @@ def ocr():
 def tus_upload():
     path = request.args.get("path", "/")
     target_dir = (STORAGE_DIR / path.lstrip("/")).resolve()
-    if not str(target_dir).startswith(str(STORAGE_DIR.resolve())):
+    if not target_dir.is_relative_to(STORAGE_DIR.resolve()):
         return jsonify({"error": "invalid"}), 400
     target_dir.mkdir(parents=True, exist_ok=True)
     upload_id = request.headers.get("Upload-Id") or secrets.token_hex(16)
@@ -1112,7 +1128,7 @@ def tus_upload():
 def tus_create():
     path = request.form.get("path", "/")
     target_dir = (STORAGE_DIR / path.lstrip("/")).resolve()
-    if not str(target_dir).startswith(str(STORAGE_DIR.resolve())):
+    if not target_dir.is_relative_to(STORAGE_DIR.resolve()):
         return jsonify({"error": "invalid"}), 400
     target_dir.mkdir(parents=True, exist_ok=True)
     upload_id = secrets.token_hex(16)

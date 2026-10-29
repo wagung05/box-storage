@@ -714,8 +714,8 @@ function promptConflictResolution(file, existingInfo) {
     const sub = $("conflictSub"), msg = $("conflictMsg");
     if (sub) sub.textContent = file.name;
     if (msg) {
-      const sizeStr = formatBytes(file.size);
-      const exSizeStr = existingInfo && existingInfo.existing_size ? formatBytes(existingInfo.existing_size) : "";
+      const sizeStr = fmtBytes(file.size);
+      const exSizeStr = existingInfo && existingInfo.existing_size ? fmtBytes(existingInfo.existing_size) : "";
       msg.innerHTML = `Berkas <b>"${esc(file.name)}"</b> (${sizeStr}) sudah ada di folder ini${exSizeStr ? ` (ukuran lama: ${exSizeStr})` : ""}. Pilih tindakan:`;
     }
     const chk = $("conflictApplyAll");
@@ -807,6 +807,18 @@ async function processNextUpload() {
     if (existing) {
       conflictMode = await promptConflictResolution(file, { existing_size: existing.size, existing_mtime: existing.mtime });
     }
+  } else if (!conflictMode) {
+    try {
+      const q = new URLSearchParams({ path: destDir, name: file.name });
+      const cr = await fetch(API_BASE + "/api/exists?" + q.toString(), { credentials: "same-origin" });
+      if (cr.status === 401) { cancelUploadQueue(); doLoginPrompt(); return; }
+      if (cr.ok) {
+        const cj = await cr.json();
+        if (cj.conflict) {
+          conflictMode = await promptConflictResolution(file, { existing_size: cj.existing_size, existing_mtime: cj.existing_mtime });
+        }
+      }
+    } catch (e) {}
   }
 
   if (conflictMode === "skip") {
