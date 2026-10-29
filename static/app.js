@@ -134,9 +134,9 @@ async function checkSession() {
 }
 function applyAuth() {
   $uploadBar.hidden = !isAdmin;
-  $(".drawer-admin-badge") && ($("drawerAdmin").hidden = !isAdmin);
-  $("drawerGuest").hidden = isAdmin;
-  $("drawerLoggedActions").hidden = !isAdmin;
+  if ($("drawerAdmin")) $("drawerAdmin").hidden = !isAdmin;
+  if ($("drawerGuest")) $("drawerGuest").hidden = isAdmin;
+  if ($("drawerLoggedActions")) $("drawerLoggedActions").hidden = !isAdmin;
   $navPanel.hidden = !isAdmin;
   $navSettings.hidden = !isAdmin;
   if ($("newFolderBtn")) $("newFolderBtn").hidden = !isAdmin;
@@ -144,7 +144,7 @@ function applyAuth() {
     el.hidden = !isAdmin;
   });
   if (isAdmin) {
-    $("drawerLogout").style.display = "";
+    if ($("drawerLogout")) $("drawerLogout").style.display = "";
     refreshFavs();
     refreshGauge();
   } else {
