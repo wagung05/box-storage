@@ -602,6 +602,66 @@ html[data-theme="light"] .entry-act.danger:hover {
   .anl-label { grid-area: lab !important; min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; font-size: 13.5px !important; font-weight: 550 !important; }
   .anl-val { grid-area: val !important; text-align: right !important; white-space: nowrap !important; font-variant-numeric: tabular-nums !important; font-size: 13px !important; color: var(--muted) !important; }
   .anl-bar { grid-area: bar !important; height: 7px !important; border-radius: 999px !important; width: 100% !important; }
+  .panel-card-value {
+    font-weight: 700 !important;
+  }
+  .feature-item {
+    padding: 14px 0 !important;
+    min-height: 48px !important;
+    gap: 12px !important;
+    min-width: 0 !important;
+  }
+  .feature-item:has(.accent-palette) {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 12px !important;
+  }
+  .setting-label {
+    font-size: 15.5px !important;
+    min-width: 0 !important;
+    flex-shrink: 1 !important;
+  }
+  .setting-label i {
+    width: 34px !important; height: 34px !important; font-size: 14px !important;
+  }
+  .setting-select {
+    flex: 1 1 auto !important;
+    max-width: 62% !important;
+    min-width: 0 !important;
+    height: 42px !important;
+    font-size: 15px !important;
+    padding: 8px 12px !important;
+    padding-right: 32px !important;
+    border-radius: 12px !important;
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 12px center !important;
+  }
+  .accent-palette {
+    width: 100% !important;
+    justify-content: space-between !important;
+    padding: 6px 2px !important;
+  }
+  .accent-dot {
+    width: 30px !important;
+    height: 30px !important;
+  }
+  .toggle {
+    width: 50px !important;
+    height: 30px !important;
+  }
+  .toggle-knob {
+    width: 24px !important;
+    height: 24px !important;
+  }
+  .toggle.on .toggle-knob { transform: translateX(22px) !important; }
+  .logout-btn, .bot-link-btn {
+    padding: 15px !important;
+    font-size: 15px !important;
+    border-radius: 14px !important;
+  }
 }
 .panel-card {
   padding: 20px; border-radius: 22px;
