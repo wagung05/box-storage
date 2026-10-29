@@ -276,16 +276,14 @@ body.dark { color-scheme: dark; }
   background: var(--glass); border: 1px solid var(--border);
   box-shadow: var(--liquid-sheen);
   cursor: pointer;
-  transition: transform .22s var(--ease), box-shadow .22s var(--ease), border-color .2s, background .2s;
+  transition: box-shadow .2s var(--ease), border-color .2s, background .2s;
   animation: fadeIn .3s var(--ease);
 }
 .entry:hover {
-  transform: translateY(-3px) scale(1.01);
   box-shadow: 0 16px 40px rgba(0,0,0,0.55), inset 0 1px 1px 0 rgba(255,255,255,0.32);
   border-color: var(--border-hi);
   background: var(--glass-strong);
 }
-.entry:active { transform: scale(.975); transition-duration: .1s; }
 .entry-thumb {
   aspect-ratio: 16/10; background: var(--glass-strong);
   display: grid; place-items: center; overflow: hidden;
@@ -329,34 +327,55 @@ html[data-theme="light"] .entry-up:hover {
 .entry-meta { font-size: 11px; color: var(--muted); margin-top: 3px; font-variant-numeric: tabular-nums; }
 .entry-actions {
   position: absolute; top: 8px; right: 8px;
-  display: flex; gap: 6px; z-index: 12;
-  opacity: 0.92; transition: opacity .18s;
+  display: flex; gap: 6px; z-index: 20;
+  pointer-events: auto;
+  opacity: 0.95;
 }
-.entry:hover .entry-actions { opacity: 1; }
 .entries.list .entry-actions {
-  position: static; margin-left: auto; flex-shrink: 0;
-  opacity: 1;
+  position: relative; margin-left: auto; flex-shrink: 0;
+  opacity: 1; z-index: 20;
 }
 .entry-act {
   width: 34px; height: 34px; border-radius: 10px;
-  background: var(--bg); background: color-mix(in srgb, var(--bg) 88%, transparent);
-  border: 1px solid var(--border); color: var(--text);
+  background: var(--bg); background: color-mix(in srgb, var(--bg) 90%, transparent);
+  border: 1px solid var(--border-hi); color: var(--text);
   display: grid; place-items: center;
-  cursor: pointer; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  font-size: 13px; transition: transform .15s var(--ease), background .15s, border-color .15s, color .15s;
+  cursor: pointer; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  font-size: 13px;
   touch-action: manipulation;
-  box-shadow: 0 4px 12px rgba(0,0,0,.22), inset 0 1px 0 rgba(255,255,255,.18);
+  box-shadow: 0 4px 12px rgba(0,0,0,.25), inset 0 1px 0 rgba(255,255,255,.2);
+  transition: background .12s, border-color .12s, color .12s, box-shadow .12s;
+  transform: none !important;
 }
-.entry-act:hover { background: var(--glass-hi); transform: scale(1.06); }
-.entry-act:active { transform: scale(0.92); }
-.entry-act.danger:hover { background: rgba(255,69,58,.28); border-color: rgba(255,69,58,.5); color: var(--danger); }
+.entry-act:hover {
+  background: var(--accent); color: #fff; border-color: var(--accent);
+  box-shadow: 0 6px 18px rgba(10,132,255,.45);
+}
+.entry-act:active {
+  background: var(--accent-2); color: #fff;
+  transform: none !important;
+}
+.entry-act.danger:hover {
+  background: var(--danger); color: #fff; border-color: var(--danger);
+  box-shadow: 0 6px 18px rgba(255,69,58,.45);
+}
+.entry-act.danger:active {
+  background: #d70015; color: #fff;
+  transform: none !important;
+}
 html[data-theme="light"] .entry-act {
-  background: rgba(255,255,255,.92); border-color: rgba(0,0,0,.12); color: #1d1d1f;
-  box-shadow: 0 2px 8px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,.9);
+  background: rgba(255,255,255,.94); border-color: rgba(0,0,0,.15); color: #1d1d1f;
+  box-shadow: 0 2px 8px rgba(0,0,0,.1), inset 0 1px 0 rgba(255,255,255,.9);
 }
-html[data-theme="light"] .entry-act:hover { background: #ffffff; border-color: rgba(0,0,0,.2); }
-html[data-theme="light"] .entry-act.danger { color: #ff3b30; }
-html[data-theme="light"] .entry-act.danger:hover { background: rgba(255,59,48,.12); border-color: rgba(255,59,48,.3); }
+html[data-theme="light"] .entry-act:hover {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+}
+html[data-theme="light"] .entry-act.danger {
+  color: #ff3b30;
+}
+html[data-theme="light"] .entry-act.danger:hover {
+  background: #ff3b30; border-color: #ff3b30; color: #fff;
+}
 
 /* ===== SKELETON ===== */
 .skeleton { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(158px, 1fr)); }

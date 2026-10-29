@@ -448,6 +448,9 @@ function render() {
     el.innerHTML = `${chk}${thumb}<div class="entry-body"><div class="entry-name">${name}</div><div class="entry-meta">${meta}</div></div>${actions}`;
 
     el.querySelectorAll(".entry-act").forEach(btn => {
+      btn.addEventListener("mousedown", e => e.stopPropagation());
+      btn.addEventListener("pointerdown", e => e.stopPropagation());
+      btn.addEventListener("mouseup", e => e.stopPropagation());
       btn.addEventListener("click", e => {
         e.stopPropagation();
         e.preventDefault();
@@ -456,8 +459,10 @@ function render() {
     });
 
     el.addEventListener("click", e => {
-      const act = e.target.closest("[data-act]");
-      if (act) { e.stopPropagation(); handleAct(item, act.dataset.act); return; }
+      if (e.target.closest(".entry-actions") || e.target.closest(".entry-act")) {
+        e.stopPropagation();
+        return;
+      }
       if (selMode && !item.vault) { toggleSel(item); return; }
       if (item.is_dir) goDir(item.path);
       else if (inv) vaultPreview(item.name);
