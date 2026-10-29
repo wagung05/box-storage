@@ -1353,26 +1353,28 @@ async function loadShares() {
     }
     list.innerHTML = shares.map(s => {
       const typeInfo = shareTypeIcon(s.name);
-      const expText = s.expires_at ? new Date(s.expires_at * 1000).toLocaleDateString("id-ID", { day: "numeric", month: "short" }) : null;
-      const capText = s.limit ? `${s.uses}/${s.limit}x` : null;
+      const expText = s.expires_at ? new Date(s.expires_at * 1000).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" }) : null;
+      const capText = s.limit ? `${s.uses}/${s.limit}x` : (s.uses ? `${s.uses}x diunduh` : null);
       return `
         <div class="share-row">
-          <div class="share-row-icon" style="background:color-mix(in srgb, ${typeInfo.color} 15%, transparent);color:${typeInfo.color};border-color:color-mix(in srgb, ${typeInfo.color} 30%, transparent)">
-            <i class="fa-solid ${typeInfo.icon}"></i>
-          </div>
-          <div class="share-row-main">
-            <div class="share-row-name" title="${esc(s.name)}">${esc(s.name)}</div>
-            <div class="share-row-meta">
-              <span class="share-badge accent"><i class="fa-solid fa-folder" style="font-size:9px"></i>${esc(s.path.split("/").slice(0, -1).join("/") || "/")}</span>
-              ${expText ? `<span class="share-badge warning"><i class="fa-solid fa-clock" style="font-size:9px"></i>${esc(expText)}</span>` : `<span class="share-badge"><i class="fa-solid fa-infinity" style="font-size:9px"></i>Selamanya</span>`}
-              ${capText ? `<span class="share-badge success"><i class="fa-solid fa-download" style="font-size:9px"></i>${esc(capText)}</span>` : ''}
-              ${s.secure ? `<span class="share-badge" style="color:var(--accent)"><i class="fa-solid fa-shield-halved" style="font-size:9px"></i>Kunci</span>` : ''}
+          <div class="share-row-head">
+            <div class="share-row-icon" style="background:color-mix(in srgb, ${typeInfo.color} 15%, transparent);color:${typeInfo.color};border-color:color-mix(in srgb, ${typeInfo.color} 30%, transparent)">
+              <i class="fa-solid ${typeInfo.icon}"></i>
+            </div>
+            <div class="share-row-main">
+              <div class="share-row-name">${esc(s.name)}</div>
+              <div class="share-row-meta">
+                <span class="share-badge accent" title="${esc(s.path)}"><i class="fa-solid fa-folder" style="font-size:9px"></i>${esc(s.path.split("/").slice(0, -1).join("/") || "/")}</span>
+                ${expText ? `<span class="share-badge warning"><i class="fa-solid fa-clock" style="font-size:9px"></i>${esc(expText)}</span>` : `<span class="share-badge"><i class="fa-solid fa-infinity" style="font-size:9px"></i>Selamanya</span>`}
+                ${capText ? `<span class="share-badge success"><i class="fa-solid fa-download" style="font-size:9px"></i>${esc(capText)}</span>` : ''}
+                ${s.secure ? `<span class="share-badge" style="color:var(--accent)"><i class="fa-solid fa-shield-halved" style="font-size:9px"></i>Dilindungi PIN</span>` : ''}
+              </div>
             </div>
           </div>
           <div class="share-row-acts">
-            <button class="share-btn" data-copy="${esc(s.url)}" title="Salin tautan"><i class="fa-solid fa-copy"></i></button>
-            <button class="share-btn" data-open="${esc(s.url)}" title="Buka"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
-            <button class="share-btn danger" data-revoke="${esc(s.token)}" title="Hapus tautan"><i class="fa-solid fa-trash"></i></button>
+            <button class="share-btn" data-copy="${esc(s.url)}" title="Salin tautan"><i class="fa-solid fa-copy"></i><span>Salin</span></button>
+            <button class="share-btn" data-open="${esc(s.url)}" title="Buka"><i class="fa-solid fa-arrow-up-right-from-square"></i><span>Buka</span></button>
+            <button class="share-btn danger" data-revoke="${esc(s.token)}" title="Hapus tautan"><i class="fa-solid fa-trash"></i><span>Cabut</span></button>
           </div>
         </div>`;
     }).join("");
