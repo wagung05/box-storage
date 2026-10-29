@@ -772,10 +772,9 @@ body{{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text
   </div>
   <div class="foot">
     <div class="countdown-box" id="countBox">
-      <span id="countText">Mengunduh otomatis dalam <b id="secNum" style="color:#0a84ff">3</b>s</span>
-      <button class="cancel-btn" id="cancelBtn" type="button">Batal otomatis</button>
+      <span id="countText"><i class="fa-solid fa-clock"></i> Tombol unduh aktif dalam <b id="secNum" style="color:#0a84ff">3</b>s</span>
     </div>
-    <a href="{dl_url}" class="btn disabled" id="dlBtn">
+    <a href="javascript:void(0)" class="btn disabled" id="dlBtn" aria-disabled="true">
       <i class="fa-solid fa-download"></i> <span id="btnText">Tunggu 3s</span>
     </a>
   </div>
@@ -784,17 +783,17 @@ body{{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text
 <script>
 (function(){{
   let count = 3;
-  let auto = true;
   const dlUrl = "{dl_url}";
   const btn = document.getElementById("dlBtn");
   const secNum = document.getElementById("secNum");
   const countBox = document.getElementById("countBox");
   const btnText = document.getElementById("btnText");
-  const cancelBtn = document.getElementById("cancelBtn");
 
-  cancelBtn.addEventListener("click", () => {{
-    auto = false;
-    countBox.style.display = "none";
+  btn.addEventListener("click", (e) => {{
+    if (btn.classList.contains("disabled")) {{
+      e.preventDefault();
+      return false;
+    }}
   }});
 
   const interval = setInterval(() => {{
@@ -805,11 +804,10 @@ body{{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text
     }} else {{
       clearInterval(interval);
       btn.classList.remove("disabled");
-      btnText.textContent = "Unduh Sekarang";
-      if (auto) {{
-        countBox.innerHTML = '<span style="color:#30d158"><i class="fa-solid fa-circle-check"></i> Siap diunduh</span>';
-        location.href = dlUrl;
-      }}
+      btn.removeAttribute("aria-disabled");
+      btn.href = dlUrl;
+      btnText.textContent = "Unduh Berkas";
+      countBox.innerHTML = '<span style="color:#30d158"><i class="fa-solid fa-circle-check"></i> Siap diunduh</span>';
     }}
   }}, 1000);
 }})();
