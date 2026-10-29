@@ -1,5 +1,26 @@
 const API_BASE = "";
-let isAdmin = false, currentPath = "/", currentCategory = "all", currentQuery = "", viewMode = "list";
+let isAdmin = false, currentPath = "/", currentCategory = "all", currentQuery = "";
+let viewMode = localStorage.getItem("box_view_mode") || "list";
+let sortField = localStorage.getItem("box_sort_field") || "name";
+let sortOrder = localStorage.getItem("box_sort_order") || "asc";
+let vaultAutoLockMin = +(localStorage.getItem("box_vault_autolock") || 15);
+let vaultLastActivity = Date.now();
+
+function touchVaultActivity() {
+  vaultLastActivity = Date.now();
+}
+["mousemove", "keydown", "click", "touchstart"].forEach(evt => {
+  window.addEventListener(evt, touchVaultActivity, { passive: true });
+});
+
+setInterval(() => {
+  if (vaultToken && vaultAutoLockMin > 0) {
+    if (Date.now() - vaultLastActivity > vaultAutoLockMin * 60 * 1000) {
+      vaultLock();
+      console.log("Vault auto-locked due to inactivity");
+    }
+  }
+}, 10000);
 const VAULT_PATH = "__vault__";
 let vaultToken = sessionStorage.getItem("vault_token") || "";
 let remoteResults = null, remoteKey = 0, folderThumbs = {};
@@ -172,7 +193,7 @@ $("drawerLogout").addEventListener("click", () => {
   fetch(API_BASE + "/api/logout", { method: "POST" }).then(() => { isAdmin = false; applyAuth(); closeDrawer(); showTab("files"); });
 });
 
-// ===== THEME =====
+// ===== THEME & ACCENT =====
 function applyTheme(isDark) {
   const theme = isDark ? "dark" : "light";
   document.documentElement.setAttribute("data-theme", theme);
@@ -186,15 +207,27 @@ function applyTheme(isDark) {
   const h = document.querySelector("#themeBtn .ti");
   if (h) h.className = "fa-solid ti " + (isDark ? "fa-sun" : "fa-moon");
 }
+
+function applyAccent(acc) {
+  const allowed = ["default", "purple", "emerald", "sunset", "rose", "cyan"];
+  const val = allowed.includes(acc) ? acc : "default";
+  document.documentElement.setAttribute("data-accent", val);
+  localStorage.setItem("box_accent", val);
+  qsa(".accent-dot").forEach(d => d.classList.toggle("active", d.dataset.acc === val));
+}
+
 function toggleTheme() {
   const isDark = document.documentElement.getAttribute("data-theme") !== "light";
   const next = !isDark;
   localStorage.setItem("sam_theme", next ? "dark" : "light");
   applyTheme(next);
 }
+
 function initTheme() {
   const saved = localStorage.getItem("sam_theme");
   applyTheme(saved ? saved === "dark" : true);
+  const acc = localStorage.getItem("box_accent") || "default";
+  applyAccent(acc);
 }
 $("themeBtn").addEventListener("click", toggleTheme);
 
@@ -212,13 +245,14 @@ qsa(".nav-item").forEach(n => n.addEventListener("click", () => showTab(n.datase
 
 function setView(mode) {
   viewMode = mode;
+  localStorage.setItem("box_view_mode", mode);
   localStorage.setItem("view_mode", mode);
   $("viewGrid").classList.toggle("active", mode === "grid");
   $("viewList").classList.toggle("active", mode === "list");
   $entries.style.display = viewMode === "grid" ? "grid" : "block";
   $entries.classList.toggle("list", viewMode === "list");
 }
-const savedView = localStorage.getItem("view_mode");
+const savedView = localStorage.getItem("box_view_mode") || localStorage.getItem("view_mode");
 if (savedView === "grid" || savedView === "list") setView(savedView);
 $("viewGrid").addEventListener("click", () => setView("grid"));
 $("viewList").addEventListener("click", () => setView("list"));
@@ -332,13 +366,30 @@ async function loadList(path) {
   } catch (e) { remoteResults = []; render(); }
 }
 
+function sortItems(items) {
+  return items.sort((a, b) => {
+    if (a.is_dir !== b.is_dir) return b.is_dir - a.is_dir;
+    let res = 0;
+    if (sortField === "size") {
+      res = (a.size || 0) - (b.size || 0);
+    } else if (sortField === "mtime") {
+      res = (a.mtime || 0) - (b.mtime || 0);
+    } else if (sortField === "ext") {
+      res = (a.ext || "").localeCompare(b.ext || "", "id");
+    } else {
+      res = a.name.localeCompare(b.name, "id");
+    }
+    return sortOrder === "desc" ? -res : res;
+  });
+}
+
 function filteredEntries() {
   if (currentQuery && globalSearchResults !== null) {
     let items = [...globalSearchResults];
     if (currentCategory !== "all") {
       items = items.filter(it => currentCategory === "folder" ? it.is_dir : it.category === currentCategory);
     }
-    return items.sort((a, b) => (a.is_dir !== b.is_dir ? b.is_dir - a.is_dir : a.name.localeCompare(b.name, "id")));
+    return sortItems(items);
   }
   if (!remoteResults) return [];
   let items = [...remoteResults];
@@ -351,10 +402,7 @@ function filteredEntries() {
       currentCategory === "folder" ? it.is_dir : it.category === currentCategory
     );
   }
-  return items.sort((a, b) => {
-    if (a.is_dir !== b.is_dir) return b.is_dir - a.is_dir;
-    return a.name.localeCompare(b.name, "id");
-  });
+  return sortItems(items);
 }
 
 function renderSkeleton() {
@@ -631,32 +679,135 @@ async function loadSettings() {
     const r = await fetch(API_BASE + "/api/panel");
     const d = await r.json();
     const f = d.features || {};
+    const curAccent = localStorage.getItem("box_accent") || "default";
+    const curSortField = localStorage.getItem("box_sort_field") || "name";
+    const curSortOrder = localStorage.getItem("box_sort_order") || "asc";
+    const curView = localStorage.getItem("box_view_mode") || "list";
+    const curAutoLock = localStorage.getItem("box_vault_autolock") || "15";
+
     $settingsView.innerHTML = `
       <div class="settings-container">
+        <!-- Tampilan & Personalisasi -->
         <div class="panel-card">
-          <div class="panel-card-header"><div class="panel-card-icon"><i class="fa-solid fa-gear"></i></div>
-            <div class="panel-card-info"><div class="panel-card-title">Setelan</div><div class="panel-card-value" style="font-size:16px">Preferensi Storage</div></div>
+          <div class="panel-card-header"><div class="panel-card-icon"><i class="fa-solid fa-palette"></i></div>
+            <div class="panel-card-info"><div class="panel-card-title">Personalisasi</div><div class="panel-card-value" style="font-size:13px">Warna aksen &amp; layout</div></div>
           </div>
           <div class="feature-list">
-            ${[{ k: "backup", i: "fa-cloud-arrow-up", l: "Auto backup otomatis" }, { k: "ocr", i: "fa-eye", l: "OCR extraksi teks" }, { k: "2fa", i: "fa-shield-halved", l: "Dua faktor" }].map(x => `
+            <div class="feature-item">
+              <div class="setting-label"><i class="fa-solid fa-droplet"></i>Aksen Warna UI</div>
+              <div class="accent-palette">
+                <div class="accent-dot ${curAccent==='default'?'active':''}" data-acc="default" style="background:#0a84ff" title="Apple Blue"></div>
+                <div class="accent-dot ${curAccent==='purple'?'active':''}" data-acc="purple" style="background:#af52de" title="Purple Neon"></div>
+                <div class="accent-dot ${curAccent==='emerald'?'active':''}" data-acc="emerald" style="background:#30d158" title="Emerald Green"></div>
+                <div class="accent-dot ${curAccent==='sunset'?'active':''}" data-acc="sunset" style="background:#ff9f0a" title="Sunset Orange"></div>
+                <div class="accent-dot ${curAccent==='rose'?'active':''}" data-acc="rose" style="background:#ff375f" title="Rose Red"></div>
+                <div class="accent-dot ${curAccent==='cyan'?'active':''}" data-acc="cyan" style="background:#64d2ff" title="Electric Cyan"></div>
+              </div>
+            </div>
+            <div class="feature-item">
+              <div class="setting-label"><i class="fa-solid fa-table-cells-large"></i>Tampilan Default</div>
+              <select id="settingViewMode" class="setting-select">
+                <option value="list" ${curView==='list'?'selected':''}>Daftar (List)</option>
+                <option value="grid" ${curView==='grid'?'selected':''}>Kisi (Grid)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Perilaku Berkas & Urutan -->
+        <div class="panel-card">
+          <div class="panel-card-header"><div class="panel-card-icon"><i class="fa-solid fa-arrow-down-a-z"></i></div>
+            <div class="panel-card-info"><div class="panel-card-title">Urutan Berkas</div><div class="panel-card-value" style="font-size:13px">Pengurutan otomatis</div></div>
+          </div>
+          <div class="feature-list">
+            <div class="feature-item">
+              <div class="setting-label"><i class="fa-solid fa-filter"></i>Urut Berdasarkan</div>
+              <select id="settingSortField" class="setting-select">
+                <option value="name" ${curSortField==='name'?'selected':''}>Nama Berkas</option>
+                <option value="mtime" ${curSortField==='mtime'?'selected':''}>Waktu Diubah</option>
+                <option value="size" ${curSortField==='size'?'selected':''}>Ukuran Berkas</option>
+                <option value="ext" ${curSortField==='ext'?'selected':''}>Tipe / Ekstensi</option>
+              </select>
+            </div>
+            <div class="feature-item">
+              <div class="setting-label"><i class="fa-solid fa-arrow-up-wide-short"></i>Arah Urutan</div>
+              <select id="settingSortOrder" class="setting-select">
+                <option value="asc" ${curSortOrder==='asc'?'selected':''}>Menaik (A-Z / Lama ke Baru)</option>
+                <option value="desc" ${curSortOrder==='desc'?'selected':''}>Menurun (Z-A / Baru ke Lama)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Keamanan & Vault -->
+        <div class="panel-card">
+          <div class="panel-card-header"><div class="panel-card-icon"><i class="fa-solid fa-shield-halved"></i></div>
+            <div class="panel-card-info"><div class="panel-card-title">Keamanan &amp; Vault</div><div class="panel-card-value" style="font-size:13px">Perlindungan data</div></div>
+          </div>
+          <div class="feature-list">
+            <div class="feature-item">
+              <div class="setting-label"><i class="fa-solid fa-clock"></i>Auto-lock Vault</div>
+              <select id="settingVaultLock" class="setting-select">
+                <option value="5" ${curAutoLock==='5'?'selected':''}>5 Menit Inaktif</option>
+                <option value="15" ${curAutoLock==='15'?'selected':''}>15 Menit Inaktif</option>
+                <option value="30" ${curAutoLock==='30'?'selected':''}>30 Menit Inaktif</option>
+                <option value="60" ${curAutoLock==='60'?'selected':''}>1 Jam Inaktif</option>
+                <option value="0" ${curAutoLock==='0'?'selected':''}>Nonaktif (Manual)</option>
+              </select>
+            </div>
+            ${[{ k: "2fa", i: "fa-key", l: "Dua Faktor (2FA)" }, { k: "backup", i: "fa-cloud-arrow-up", l: "Auto Backup Terjadwal" }, { k: "ocr", i: "fa-eye", l: "OCR Ekstraksi Teks" }].map(x => `
               <div class="feature-item"><div class="setting-label"><i class="fa-solid ${x.i}"></i>${x.l}</div>
               <button class="toggle ${f[x.k] ? "on" : ""}" data-k="${x.k}"><span class="toggle-knob"></span></button></div>`).join("")}
           </div>
-          <button class="logout-btn" id="settingsLogout"><i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar dari admin</button>
+          <button class="logout-btn" id="settingsLogout" style="margin-top:14px"><i class="fa-solid fa-arrow-right-from-bracket"></i> Keluar dari Admin</button>
         </div>
+
+        <!-- Bot Telegram & Integrasi -->
         <div class="panel-card">
           <div class="panel-card-header"><div class="panel-card-icon"><i class="fa-solid fa-robot"></i></div>
             <div class="panel-card-info"><div class="panel-card-title">Telegram Bot</div><div class="panel-card-value" style="font-size:13px">Kirim / minta file lewat chat</div></div>
           </div>
-          <p style="font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 12px">Panduan instalasi manual + generator script bot (token bot &amp; password cuma di browser kamu).</p>
-          <button class="bot-link-btn" id="settingsBot"><i class="fa-solid fa-wand-magic-sparkles"></i> Buka panduan instalasi bot</button>
+          <p style="font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 12px">Panduan instalasi manual + generator script bot (token bot &amp; password tersimpan lokal di browser kamu).</p>
+          <button class="bot-link-btn" id="settingsBot"><i class="fa-solid fa-wand-magic-sparkles"></i> Buka Panduan Instalasi Bot</button>
         </div>
       </div>`;
+
+    // Bind Accent dots
+    qsa(".accent-dot", $settingsView).forEach(dot => dot.addEventListener("click", () => {
+      applyAccent(dot.dataset.acc);
+    }));
+
+    // Bind View Mode Select
+    $("settingViewMode").addEventListener("change", e => {
+      setView(e.target.value);
+    });
+
+    // Bind Sort Selects
+    $("settingSortField").addEventListener("change", e => {
+      sortField = e.target.value;
+      localStorage.setItem("box_sort_field", sortField);
+      render();
+    });
+    $("settingSortOrder").addEventListener("change", e => {
+      sortOrder = e.target.value;
+      localStorage.setItem("box_sort_order", sortOrder);
+      render();
+    });
+
+    // Bind Vault Autolock
+    $("settingVaultLock").addEventListener("change", e => {
+      vaultAutoLockMin = +e.target.value;
+      localStorage.setItem("box_vault_autolock", vaultAutoLockMin);
+      touchVaultActivity();
+    });
+
+    // Bind Toggles
     qsa(".toggle", $settingsView).forEach(b => b.addEventListener("click", async () => {
       const k = b.dataset.k;
       fetch(API_BASE + "/api/panel", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ [k]: !b.classList.contains("on") }) })
         .then(() => loadSettings());
     }));
+
     $("settingsLogout").addEventListener("click", () => {
       fetch(API_BASE + "/api/logout", { method: "POST" }).then(() => { isAdmin = false; applyAuth(); showTab("files"); });
     });
@@ -732,7 +883,13 @@ $shareCreate.addEventListener("click", () => {
   const payload = { path: shareItem.path };
   if ($shareSlug) {
     const s = $shareSlug.value.trim().toLowerCase().replace(/[^a-z0-9-]/g, "");
-    if (s) payload.slug = s;
+    if (s) {
+      if (s.length < 3) {
+        $shareTip.innerHTML = '<i class="fa-solid fa-triangle-exclamation" style="color:#ff453a"></i> Custom slug minimal 3 karakter!';
+        return;
+      }
+      payload.slug = s;
+    }
   }
   const pw = $sharePw.value.trim(); if (pw) payload.password = pw;
   const exp = +$shareExp.value; if (exp > 0) payload.expires = exp;

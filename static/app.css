@@ -13,6 +13,32 @@
   --warning: #ffd60a;
 }
 
+[data-accent="purple"] {
+  --accent: #af52de;
+  --accent-2: #9b30d9;
+  --accent-glow: rgba(175, 82, 222, 0.38);
+}
+[data-accent="emerald"] {
+  --accent: #30d158;
+  --accent-2: #24a844;
+  --accent-glow: rgba(48, 209, 88, 0.38);
+}
+[data-accent="sunset"] {
+  --accent: #ff9f0a;
+  --accent-2: #e08300;
+  --accent-glow: rgba(255, 159, 10, 0.38);
+}
+[data-accent="rose"] {
+  --accent: #ff375f;
+  --accent-2: #d92045;
+  --accent-glow: rgba(255, 55, 95, 0.38);
+}
+[data-accent="cyan"] {
+  --accent: #64d2ff;
+  --accent-2: #00a0dc;
+  --accent-glow: rgba(100, 210, 255, 0.38);
+}
+
 /* ===== DARK THEME (default) ===== */
 :root {
   color-scheme: dark;
@@ -979,6 +1005,34 @@ html[data-theme="light"] .preview-txt{color:#1d1d1f;background:#fff;border:1px s
 .anl-fill.dir{background:linear-gradient(90deg,#30d158,#0a84ff);box-shadow:0 0 10px rgba(48,209,88,.4)}
 .anl-val{font-size:12px;color:var(--text-2);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:600}
 @keyframes slideUpIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+
+/* ==== Custom Select & Accent in Settings ==== */
+.setting-select {
+  background: var(--glass-strong);
+  color: var(--text);
+  border: 1px solid var(--border-hi);
+  border-radius: 10px;
+  padding: 6px 12px;
+  font-size: 13.5px;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.setting-select:focus {
+  border-color: var(--accent);
+}
+.accent-palette {
+  display: flex; gap: 8px; align-items: center;
+}
+.accent-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  cursor: pointer; border: 2px solid transparent;
+  transition: transform .15s var(--ease), border-color .15s;
+}
+.accent-dot:hover { transform: scale(1.15); }
+.accent-dot.active { border-color: #fff; box-shadow: 0 0 10px var(--accent-glow); }
+html[data-theme="light"] .accent-dot.active { border-color: #1d1d1f; }
 
 /* ==== Telegram bot settings card ==== */
 .bot-link-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--accent);color:#fff;border:none;border-radius:12px;padding:12px;font-size:14px;font-weight:700;cursor:pointer}

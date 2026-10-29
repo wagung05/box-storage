@@ -7,27 +7,10 @@ from pathlib import Path
 from datetime import datetime
 from flask import Flask, request, jsonify, Response, send_file, abort, make_response, g
 
-app = Flask(__name__, static_folder="static")
+app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024 * 1024
 
-# Portable paths (Cross-platform: Linux, macOS, Windows)
-BASE_DIR = Path(__file__).resolve().parent
-STATIC_DIR = BASE_DIR / "static"
-
-# Load .env if present
-env_file = BASE_DIR / ".env"
-if env_file.exists():
-    try:
-        for line in env_file.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                k, v = line.split("=", 1)
-                os.environ.setdefault(k.strip(), v.strip().strip("'").strip('"'))
-    except Exception:
-        pass
-
-STORAGE_DIR = Path(os.environ.get("STORAGE_DIR", BASE_DIR / "data")).resolve()
-STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+STORAGE_DIR = Path("/mnt/storage")
 SYS_DIR = STORAGE_DIR / ".sys"
 SYS_DIR.mkdir(parents=True, exist_ok=True)
 FEATURES_FILE = SYS_DIR / "features.json"
@@ -35,16 +18,14 @@ AUDIT_FILE = SYS_DIR / "audit.log"
 VAULT_FILE = SYS_DIR / "vault.json"
 ENC_KEY_FILE = SYS_DIR / "enc.key"
 VAULT_DIR = STORAGE_DIR / ".vault"
-VAULT_DIR.mkdir(parents=True, exist_ok=True)
 VAULT_INDEX_FILE = VAULT_DIR / ".index"
 VAULT_PIN = os.environ.get("VAULT_PIN", "121967")
 VAULT_SESSION_TTL = 7200
 vault_sessions = {}
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "harnas05")
 SECRET = os.environ.get("FLASK_SECRET", secrets.token_hex(32))
 app.secret_key = SECRET
 TRASH_DIR = STORAGE_DIR / ".trash"
-TRASH_DIR.mkdir(parents=True, exist_ok=True)
 TRASH_IDX = SYS_DIR / "trash.json"
 TRASH_RETENTION = 30 * 86400
 
@@ -136,11 +117,11 @@ def admin_required(f):
 
 @app.route("/")
 def index():
-    return send_file(STATIC_DIR / "shell.html")
+    return send_file("/opt/storage/static/shell.html")
 
 @app.route("/d")
 def download_page():
-    return send_file(STATIC_DIR / "download.html")
+    return send_file("/opt/storage/static/download.html")
 
 @app.route("/api/login", methods=["POST"])
 def login():
@@ -149,8 +130,7 @@ def login():
     if hmac.compare_digest(pw, ADMIN_PASSWORD):
         token = secrets.token_hex(32)
         resp = jsonify({"ok": True})
-        is_https = request.is_secure or request.headers.get("X-Forwarded-Proto") == "https"
-        resp.set_cookie("session", token, httponly=True, secure=is_https, samesite="lax" if not is_https else "strict", max_age=86400*7)
+        resp.set_cookie("session", token, httponly=True, secure=True, samesite="strict", max_age=86400*7)
         audit("login", "success")
         return resp
     audit("login", "failed")
@@ -560,7 +540,7 @@ def analytics():
 
 @app.route("/t")
 def telegram_page():
-    return send_file(STATIC_DIR / "telegram.html")
+    return send_file("/opt/storage/static/telegram.html")
 
 @app.route("/api/zip", methods=["POST"])
 def zip_folder():
@@ -603,8 +583,11 @@ def share():
     shares = _load_shares()
     if slug:
         slug = re.sub(r"[^a-z0-9-]", "", slug)
-        if not slug or slug in shares:
-            return jsonify({"ok": False, "error": "Slug sudah dipakai / tidak valid"}), 409
+        if len(slug) < 3:
+            return jsonify({"ok": False, "error": "Custom slug minimal 3 karakter (huruf, angka, strip)"}), 400
+        existing = shares.get(slug)
+        if existing and existing.get("path") != path:
+            return jsonify({"ok": False, "error": f"Custom slug '{slug}' sudah digunakan file lain. Silakan pilih nama slug lain!"}), 409
         token = slug
     entry = {"path": path, "created": time.time(), "uses": 0}
     pw = str(data.get("password") or "").strip()
@@ -672,7 +655,7 @@ def _gate_html(token, title, desc, form=False, note=None, error=None):
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#06060a">
-<title>{title} — Box Storage</title>
+<title>{title} — Storage</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
 {_GATE_CSS}
@@ -1256,11 +1239,6 @@ def vault_delete():
     return jsonify({"ok": True})
 
 if __name__ == "__main__":
-    host = os.environ.get("HOST", "0.0.0.0")
-    port = int(os.environ.get("PORT", "8080"))
-    print(f"\n========================================================")
-    print(f"  📦 Box Storage Running on: http://{host}:{port}")
-    print(f"  📂 Storage Directory:      {STORAGE_DIR}")
-    print(f"  🔑 Default Admin Password: {ADMIN_PASSWORD}")
-    print(f"========================================================\n")
-    app.run(host=host, port=port, threaded=True)
+    STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+    SYS_DIR.mkdir(parents=True, exist_ok=True)
+    app.run(host="127.0.0.1", port=8080, threaded=True)
