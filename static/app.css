@@ -524,7 +524,51 @@ html[data-theme="light"] .entry-act.danger:hover {
 /* ===== PANEL ===== */
 .panel, .settings { flex: 1; overflow-y: auto; padding: 16px 14px calc(90px + env(safe-area-inset-bottom)); }
 .panel-container, .settings-container { max-width: 980px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-@media (max-width: 640px) { .panel-container, .settings-container { grid-template-columns: 1fr; } }
+@media (max-width: 768px) {
+  .panel-container, .settings-container {
+    grid-template-columns: 1fr !important;
+    max-width: 100% !important;
+    padding: 0 4px 30px !important;
+    gap: 14px !important;
+  }
+  .panel-card {
+    padding: 18px 16px !important;
+    border-radius: 20px !important;
+    background: var(--glass-strong) !important;
+    box-shadow: 0 8px 24px rgba(0,0,0,.25) !important;
+  }
+  .cat-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .cat-chip {
+    padding: 10px 8px !important;
+    border-radius: 14px !important;
+    align-items: center !important;
+    text-align: center !important;
+    gap: 4px !important;
+  }
+  .cat-chip b { font-size: 14px !important; }
+  .cat-chip span { font-size: 11px !important; }
+  .anl-row {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-areas: "lab val" "bar bar" !important;
+    gap: 6px 10px !important;
+    align-items: center !important;
+    padding: 10px 0 !important;
+    border-bottom: 1px solid rgba(255,255,255,.07) !important;
+  }
+  .anl-row:last-child { border-bottom: none !important; }
+  .anl-label { grid-area: lab !important; min-width: 0 !important; overflow: hidden !important; text-overflow: ellipsis !important; font-size: 13.5px !important; font-weight: 550 !important; }
+  .anl-val { grid-area: val !important; text-align: right !important; white-space: nowrap !important; font-variant-numeric: tabular-nums !important; font-size: 13px !important; color: var(--muted) !important; }
+  .anl-bar { grid-area: bar !important; height: 7px !important; border-radius: 999px !important; }
+  .panel-card-value {
+    font-size: 20px !important;
+    font-weight: 700 !important;
+  }
+}
 .panel-card {
   padding: 20px; border-radius: 22px;
   background: var(--glass);
@@ -1252,26 +1296,63 @@ html[data-theme="light"] .accent-dot.active {
   .panel-view,#panelView{font-size:14px;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
   .panel-container, .settings-container {
     grid-template-columns: 1fr;
-    gap: 12px;
-    padding-bottom: 24px;
+    gap: 14px;
+    padding: 0 4px 30px;
+    width: 100%;
+    box-sizing: border-box;
   }
   .panel-card {
-    padding: 16px 14px;
-    border-radius: 18px;
+    padding: 18px 16px;
+    border-radius: 20px;
+    background: var(--glass-strong);
+    border: 1px solid var(--border-hi);
+    box-shadow: 0 8px 24px rgba(0,0,0,.25);
   }
-  .anl-row{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"lab val" "bar bar";gap:6px 10px;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.06)}
-  .anl-row:last-child{border-bottom:none}
-  .anl-label{grid-area:lab;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:13px}
-  .anl-val{grid-area:val;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:13px}
-  .anl-bar{grid-area:bar;height:6px}
-  .anl-title{font-size:13px;letter-spacing:.01em;margin-bottom:6px}
-  .cat-grid{display:flex;flex-wrap:wrap;gap:8px}
-  .cat-chip{flex:1 1 40%;display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:12px;border-radius:12px;font-size:14px;line-height:1.4;white-space:normal}
-  .panel-card{padding:16px}
-  .panel-card-header{flex-wrap:nowrap}
-  .panel-card-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
-  .panel-card-value{font-size:22px !important;font-weight:700;color:var(--text);letter-spacing:-0.02em}
-  .settings-container{padding:0}
+  .anl-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "lab val" "bar bar";
+    gap: 6px 10px;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+  }
+  .anl-row:last-child { border-bottom: none; }
+  .anl-label { grid-area: lab; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 13.5px; font-weight: 550; }
+  .anl-val { grid-area: val; text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; font-size: 13px; color: var(--muted); }
+  .anl-bar { grid-area: bar; height: 7px; border-radius: 999px; }
+  .anl-title { font-size: 13.5px; font-weight: 600; letter-spacing: -.01em; margin-bottom: 10px; }
+  .cat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    width: 100%;
+  }
+  .cat-chip {
+    padding: 10px 8px;
+    border-radius: 14px;
+    font-size: 12px;
+    align-items: center;
+    text-align: center;
+    gap: 4px;
+  }
+  .cat-chip b { font-size: 14px; }
+  .cat-chip span { font-size: 11px; }
+  .panel-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .panel-card-icon {
+    width: 42px; height: 42px; border-radius: 12px; font-size: 17px;
+  }
+  .panel-card-title {
+    font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--muted);
+  }
+  .panel-card-value {
+    font-size: 20px !important; font-weight: 700; color: var(--text); letter-spacing: -0.02em; margin-top: 2px;
+  }
+  .settings-container { padding: 0 4px 30px; }
   .share-opt{flex-wrap:wrap}
 }
 @media (max-width:360px){
