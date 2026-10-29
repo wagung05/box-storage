@@ -138,6 +138,7 @@ function applyAuth() {
   $("drawerLoggedActions").hidden = !isAdmin;
   $navPanel.hidden = !isAdmin;
   $navSettings.hidden = !isAdmin;
+  if ($("newFolderBtn")) $("newFolderBtn").hidden = !isAdmin;
   qsa('.drawer-item[data-nav="panel"], .drawer-item[data-nav="settings"], .drawer-item[data-nav="folder"]').forEach(el => {
     el.hidden = !isAdmin;
   });
@@ -548,17 +549,70 @@ function prefetchThumbs(items) {
   });
 }
 
-// ===== ADMIN ACTIONS =====
-async function newFolder() {
-  if (inVault()) { alert("Folder tidak bisa dibuat di dalam Vault."); return; }
-  const name = prompt("Nama folder:");
-  if (!name) return;
-  const r = await fetch(API_BASE + "/api/mkdir", {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ path: currentPath, name })
+// ===== ADMIN ACTIONS (NEW FOLDER & UPLOAD) =====
+const $folderSheet = $("folderSheet"), $folderOv = $("folderOverlay"), $folderInput = $("folderNameInput"), $folderTip = $("folderTip"), $folderSub = $("folderSub"), $newFolderBtn = $("newFolderBtn");
+
+function openNewFolderModal() {
+  if (!isAdmin) { doLoginPrompt(); return; }
+  if (inVault()) { applyToast("Folder tidak bisa dibuat di dalam Vault", "fa-triangle-exclamation"); return; }
+  if ($folderSub) $folderSub.textContent = "Di " + (currentPath === "/" ? "Beranda" : currentPath);
+  if ($folderInput) $folderInput.value = "";
+  if ($folderTip) $folderTip.textContent = "";
+  if ($folderOv) $folderOv.hidden = false;
+  if ($folderSheet) $folderSheet.hidden = false;
+  setTimeout(() => { if ($folderInput) $folderInput.focus(); }, 60);
+}
+
+function closeNewFolderModal() {
+  if ($folderOv) $folderOv.hidden = true;
+  if ($folderSheet) $folderSheet.hidden = true;
+}
+
+if ($folderOv) $folderOv.addEventListener("click", closeNewFolderModal);
+const $folderClose = $("folderClose"); if ($folderClose) $folderClose.addEventListener("click", closeNewFolderModal);
+const $folderCancel = $("folderCancel"); if ($folderCancel) $folderCancel.addEventListener("click", closeNewFolderModal);
+
+const $folderForm = $("folderForm");
+if ($folderForm) {
+  $folderForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const name = ($folderInput.value || "").trim();
+    if (!name) {
+      if ($folderTip) $folderTip.textContent = "Nama folder tidak boleh kosong.";
+      return;
+    }
+    if (/[/\\?%*:|"<>]/g.test(name)) {
+      if ($folderTip) $folderTip.textContent = "Nama folder mengandung karakter dilarang.";
+      return;
+    }
+    const btn = $("folderSubmit");
+    if (btn) btn.disabled = true;
+    try {
+      const r = await fetch(API_BASE + "/api/mkdir", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: currentPath, name })
+      });
+      if (r.status === 401) { closeNewFolderModal(); doLoginPrompt(); return; }
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        if ($folderTip) $folderTip.textContent = d.error || "Gagal membuat folder.";
+        return;
+      }
+      closeNewFolderModal();
+      applyToast("Folder '" + name + "' berhasil dibuat!", "fa-folder-plus");
+      loadList(currentPath);
+    } catch (err) {
+      if ($folderTip) $folderTip.textContent = "Koneksi terputus.";
+    } finally {
+      if (btn) btn.disabled = false;
+    }
   });
-  if (r.status === 401) { doLoginPrompt(); return; }
-  loadList(currentPath);
+}
+
+if ($newFolderBtn) $newFolderBtn.addEventListener("click", openNewFolderModal);
+
+function newFolder() {
+  openNewFolderModal();
 }
 
 const $uploadZone = $("uploadZone");

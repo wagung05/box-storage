@@ -39,7 +39,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/fa/all.min.css">
-<link rel="stylesheet" href="/static/app.css?v=33">
+<link rel="stylesheet" href="/static/app.css?v=34">
 </head>
 <body>
 
@@ -113,9 +113,9 @@
           <i class="fa-solid fa-magnifying-glass"></i>
           <input id="searchInput" type="search" placeholder="Cari di storage..." autocomplete="off">
           <button id="clearSearch" class="clear-btn" aria-label="Bersihkan" hidden><i class="fa-solid fa-xmark"></i></button>
-          <kbd class="kbdhint">⌘K</kbd>
         </div>
         <div class="toolbar-actions">
+          <button class="icon-btn" id="newFolderBtn" aria-label="Tambah folder" title="Tambah Folder Baru" hidden><i class="fa-solid fa-folder-plus"></i></button>
           <button class="icon-btn" id="recycleBtn" aria-label="Sampah" title="Sampah (Recycle Bin)"><i class="fa-solid fa-trash-can"></i></button>
           <button class="icon-btn" id="selMode" aria-label="Pilih banyak" title="Pilih banyak"><i class="fa-solid fa-check-double"></i></button>
           <button class="icon-btn active" id="viewList" aria-label="List" title="List"><i class="fa-solid fa-list"></i></button>
@@ -292,6 +292,27 @@
   </div>
 </div>
 
+<!-- ===== NEW FOLDER SHEET ===== -->
+<div class="scrim" id="folderOverlay" hidden></div>
+<div class="sheet" id="folderSheet" role="dialog" aria-modal="true" aria-label="Tambah Folder" hidden style="max-width:390px">
+  <div class="sheet-head">
+    <div class="sheet-ico" style="color:var(--accent);background:color-mix(in srgb, var(--accent) 16%, transparent);border-color:color-mix(in srgb, var(--accent) 30%, transparent)"><i class="fa-solid fa-folder-plus"></i></div>
+    <div class="sheet-ttl"><div class="sheet-title">Folder Baru</div><div class="sheet-sub" id="folderSub">Di direktori saat ini</div></div>
+    <button class="sheet-close" id="folderClose" aria-label="Tutup"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <form id="folderForm" class="sheet-body" style="padding:16px 20px" onsubmit="return false;">
+    <div class="share-opt" style="margin-bottom:14px">
+      <i class="fa-solid fa-folder" style="color:var(--accent)"></i>
+      <input type="text" id="folderNameInput" placeholder="Nama folder..." autocomplete="off" maxlength="80" required autofocus>
+    </div>
+    <div id="folderTip" style="font-size:12.5px;color:var(--danger);min-height:18px;margin-bottom:12px"></div>
+    <div style="display:flex;gap:10px">
+      <button type="button" id="folderCancel" style="flex:1;padding:12px;border-radius:13px;background:var(--glass);border:1px solid var(--border);color:var(--text);font-weight:600;font-size:14px;cursor:pointer">Batal</button>
+      <button type="submit" id="folderSubmit" style="flex:1;padding:12px;border-radius:13px;background:var(--accent);border:none;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 18px var(--accent-glow)">Buat</button>
+    </div>
+  </form>
+</div>
+
 <!-- ===== CONFIRM DELETE SHEET ===== -->
 <div class="scrim" id="delOverlay" hidden></div>
 <div class="sheet" id="delSheet" role="dialog" aria-modal="true" aria-label="Konfirmasi Hapus" hidden style="max-width:380px">
@@ -329,6 +350,6 @@
   <button class="up-cancel" id="upCancel"><i class="fa-solid fa-xmark"></i></button>
 </div>
 
-<script src="/static/app.js?v=31"></script>
+<script src="/static/app.js?v=32"></script>
 </body>
 </html>
