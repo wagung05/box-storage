@@ -37,7 +37,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/fa/all.min.css">
-<link rel="stylesheet" href="/static/app.css?v=24">
+<link rel="stylesheet" href="/static/app.css?v=26">
 </head>
 <body>
 
@@ -291,6 +291,23 @@
   </div>
 </div>
 
+<!-- ===== CONFIRM DELETE SHEET ===== -->
+<div class="scrim" id="delOverlay" hidden></div>
+<div class="sheet" id="delSheet" role="dialog" aria-modal="true" aria-label="Konfirmasi Hapus" hidden style="max-width:380px">
+  <div class="sheet-head">
+    <div class="sheet-ico" style="color:var(--danger);background:rgba(255,69,58,.16);border-color:rgba(255,69,58,.3)"><i class="fa-solid fa-trash-can"></i></div>
+    <div class="sheet-ttl"><div class="sheet-title">Hapus item?</div><div class="sheet-sub" id="delSub">—</div></div>
+    <button class="sheet-close" id="delClose" aria-label="Tutup"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="sheet-body" style="padding:16px 20px">
+    <p id="delMsg" style="font-size:14px;color:var(--text-2);line-height:1.5;margin-bottom:18px">Item akan dipindahkan ke Sampah dan dapat dipulihkan dalam 30 hari.</p>
+    <div style="display:flex;gap:10px">
+      <button id="delCancel" style="flex:1;padding:12px;border-radius:13px;background:var(--glass);border:1px solid var(--border);color:var(--text);font-weight:600;font-size:14px;cursor:pointer">Batal</button>
+      <button id="delConfirm" style="flex:1;padding:12px;border-radius:13px;background:var(--danger);border:none;color:#fff;font-weight:700;font-size:14px;cursor:pointer;box-shadow:0 6px 18px rgba(255,69,58,.35)">Hapus</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== PREVIEW (inline viewer) ===== -->
 <div class="scrim" id="previewOverlay" hidden></div>
 <div class="preview-sheet" id="previewSheet" role="dialog" aria-modal="true" aria-label="Pratinjau" hidden>
@@ -311,6 +328,6 @@
   <button class="up-cancel" id="upCancel"><i class="fa-solid fa-xmark"></i></button>
 </div>
 
-<script src="/static/app.js?v=24"></script>
+<script src="/static/app.js?v=26"></script>
 </body>
 </html>

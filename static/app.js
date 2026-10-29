@@ -409,19 +409,27 @@ function render() {
 
     let actions;
     if (inv) {
-      actions = `<div class="entry-actions"><button class="entry-act" data-act="dl" title="Unduh"><i class="fa-solid fa-arrow-down-to-line"></i></button>${isAdmin ? '<button class="entry-act danger" data-act="del" title="Hapus"><i class="fa-solid fa-trash"></i></button>' : ""}</div>`;
+      actions = `<div class="entry-actions"><button class="entry-act" data-act="dl" title="Unduh"><i class="fa-solid fa-arrow-down-to-line"></i></button><button class="entry-act danger" data-act="del" title="Hapus"><i class="fa-solid fa-trash"></i></button></div>`;
     } else if (item.vault) {
       actions = "";
     } else if (item.is_dir) {
-      actions = `<div class="entry-actions"><button class="entry-act" data-act="zip" title="Unduh ZIP"><i class="fa-solid fa-file-zipper"></i></button>${isAdmin ? '<button class="entry-act danger" data-act="del" title="Hapus"><i class="fa-solid fa-trash"></i></button>' : ""}</div>`;
+      actions = `<div class="entry-actions"><button class="entry-act" data-act="share" title="Bagikan"><i class="fa-solid fa-share-nodes"></i></button><button class="entry-act" data-act="zip" title="Unduh ZIP"><i class="fa-solid fa-file-zipper"></i></button><button class="entry-act danger" data-act="del" title="Hapus"><i class="fa-solid fa-trash"></i></button></div>`;
     } else {
-      actions = `<div class="entry-actions"><button class="entry-act" data-act="share" title="Bagikan"><i class="fa-solid fa-share-nodes"></i></button>${isAdmin ? '<button class="entry-act danger" data-act="del" title="Hapus"><i class="fa-solid fa-trash"></i></button>' : ""}</div>`;
+      actions = `<div class="entry-actions"><button class="entry-act" data-act="share" title="Bagikan"><i class="fa-solid fa-share-nodes"></i></button><button class="entry-act danger" data-act="del" title="Hapus"><i class="fa-solid fa-trash"></i></button></div>`;
     }
 
     const chk = selMode && !item.vault
       ? `<div class="entry-check${sel.has(item.path) ? " on" : ""}"><i class="fa-solid fa-check"></i></div>`
       : "";
     el.innerHTML = `${chk}${thumb}<div class="entry-body"><div class="entry-name">${name}</div><div class="entry-meta">${meta}</div></div>${actions}`;
+
+    el.querySelectorAll(".entry-act").forEach(btn => {
+      btn.addEventListener("click", e => {
+        e.stopPropagation();
+        e.preventDefault();
+        handleAct(item, btn.dataset.act);
+      });
+    });
 
     el.addEventListener("click", e => {
       const act = e.target.closest("[data-act]");
@@ -494,13 +502,34 @@ function uploadFile(file) {
   upXhr.send(fd);
 }
 
+let pendingDelItem = null;
 function confirmDelete(item) {
-  if (!confirm(`Hapus ${item.is_dir ? "folder" : "file"} "${item.name}"?`)) return;
+  pendingDelItem = item;
+  const sub = $("delSub"); if (sub) sub.textContent = item.name;
+  const msg = $("delMsg"); if (msg) msg.textContent = `Yakin ingin menghapus ${item.is_dir ? "folder" : "berkas"} "${item.name}"? Berkas akan dipindahkan ke Sampah.`;
+  const ov = $("delOverlay"); if (ov) ov.hidden = false;
+  const sh = $("delSheet"); if (sh) sh.hidden = false;
+}
+function closeDelModal() {
+  pendingDelItem = null;
+  const ov = $("delOverlay"); if (ov) ov.hidden = true;
+  const sh = $("delSheet"); if (sh) sh.hidden = true;
+}
+if ($("delClose")) $("delClose").addEventListener("click", closeDelModal);
+if ($("delCancel")) $("delCancel").addEventListener("click", closeDelModal);
+if ($("delOverlay")) $("delOverlay").addEventListener("click", closeDelModal);
+if ($("delConfirm")) $("delConfirm").addEventListener("click", () => {
+  if (!pendingDelItem) return;
+  const item = pendingDelItem;
+  closeDelModal();
   fetch(API_BASE + "/api/delete", {
     method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ path: item.path })
-  }).then(r => { if (r.status === 401) { doLoginPrompt(); return; } if (r.ok) loadList(currentPath); });
-}
+  }).then(r => {
+    if (r.status === 401) { doLoginPrompt(); return; }
+    if (r.ok) loadList(currentPath);
+  });
+});
 
 function doLoginPrompt() { openDrawer(); }
 
@@ -632,7 +661,12 @@ if ("serviceWorker" in navigator && location.protocol === "https:") {
 
 // ===== ACTIONS (zip / share / delete) =====
 function handleAct(item, act) {
-  if (act === "del") { if (inVault()) vaultDelete(item.name); else confirmDelete(item); return; }
+  if (act === "del") {
+    if (!isAdmin) { openDrawer(); return; }
+    if (inVault()) vaultDelete(item.name);
+    else confirmDelete(item);
+    return;
+  }
   if (act === "dl") { if (inVault()) vaultDownload(item.name); else location.assign("/api/download?path=" + encodeURIComponent(item.path)); return; }
   if (act === "zip") { zipFolder(item); return; }
   if (act === "share") { openShare(item); }
