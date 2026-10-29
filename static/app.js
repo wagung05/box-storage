@@ -24,6 +24,7 @@ setInterval(() => {
 const VAULT_PATH = "__vault__";
 let vaultToken = sessionStorage.getItem("vault_token") || "";
 let remoteResults = null, remoteKey = 0, folderThumbs = {};
+let smartView = null, favSet = new Set();
 
 const $ = id => document.getElementById(id);
 const qsa = (sel, el = document) => [...el.querySelectorAll(sel)];
@@ -142,7 +143,13 @@ function applyAuth() {
   qsa('.drawer-item[data-nav="panel"], .drawer-item[data-nav="settings"], .drawer-item[data-nav="folder"]').forEach(el => {
     el.hidden = !isAdmin;
   });
-  if (isAdmin) { $("drawerLogout").style.display = ""; }
+  if (isAdmin) {
+    $("drawerLogout").style.display = "";
+    refreshFavs();
+    refreshGauge();
+  } else {
+    updateFavBadge();
+  }
   render();
 }
 
@@ -197,8 +204,51 @@ qsa("[data-nav]").forEach(btn => {
     if (nav === "panel") showTab("panel");
     else if (nav === "settings") showTab("settings");
     else if (nav === "folder") newFolder();
+    else if (nav === "all") { smartView = null; goDir("/"); }
+    else if (nav === "recents") loadRecents();
+    else if (nav === "favorites") loadFavorites();
+    else if (nav === "shares") openSharesSheet();
   });
 });
+
+// ===== SMART VIEWS (recents / favorites) =====
+function setSmartHeader(title, sub) {
+  $backBtn.hidden = true;
+  $breadcrumb.innerHTML = `<span class="crumb-seg crumb-cur"><i class="fa-solid ${smartView === "recents" ? "fa-clock-rotate-left" : "fa-star"}" style="opacity:.7;margin-right:6px"></i>${esc(title)}</span>`;
+  if (sub) {
+    const el = document.createElement("div");
+    el.className = "smart-sub";
+    el.textContent = sub;
+  }
+}
+async function loadRecents() {
+  smartView = "recents";
+  renderSkeleton();
+  showTab("files");
+  setSmartHeader("Terbaru", "Berkas yang baru diunggah / diubah");
+  try {
+    const r = await fetch("/api/recents");
+    if (r.status === 401) { doLoginPrompt(); return; }
+    remoteResults = await r.json().then(d => d.files);
+    remoteKey = Date.now();
+    render();
+  } catch (e) { remoteResults = []; render(); }
+}
+async function loadFavorites() {
+  smartView = "favorites";
+  renderSkeleton();
+  showTab("files");
+  setSmartHeader("Berbintang", "Berkas & folder yang ditandai bintang");
+  try {
+    const r = await fetch("/api/favorites");
+    if (r.status === 401) { doLoginPrompt(); return; }
+    remoteResults = await r.json().then(d => d.favorites);
+    favSet = new Set(remoteResults.map(it => it.path));
+    updateFavBadge();
+    remoteKey = Date.now();
+    render();
+  } catch (e) { remoteResults = []; render(); }
+}
 $("drawerTheme").addEventListener("click", toggleTheme);
 $("drawerLogout").addEventListener("click", () => {
   fetch(API_BASE + "/api/logout", { method: "POST" }).then(() => { isAdmin = false; applyAuth(); closeDrawer(); showTab("files"); });
@@ -331,6 +381,10 @@ function parentDir(p) {
   return i <= 0 ? "/" : p.slice(0, i);
 }
 function renderCrumbs() {
+  if (smartView) {
+    setSmartHeader(smartView === "recents" ? "Terbaru" : "Berbintang");
+    return;
+  }
   const segs = (currentPath === "/" ? "" : currentPath).split("/").filter(Boolean);
   if ($backBtn) $backBtn.hidden = currentPath === "/";
   const home = `<button class="crumb-seg" data-crumb="/">/</button>`;
@@ -347,6 +401,7 @@ function renderCrumbs() {
   $breadcrumb.querySelectorAll("[data-crumb]").forEach(b => b.addEventListener("click", () => goDir(b.dataset.crumb)));
 }
 function goDir(path) {
+  smartView = null;
   path = (path && path !== ".") ? path : "/";
   if (path === "/" + VAULT_PATH) path = VAULT_PATH;
   history.pushState({ path }, "", path === VAULT_PATH ? "/?p=" + encodeURIComponent(VAULT_PATH) : "/?p=" + encodeURIComponent(path.slice(1)));
@@ -435,7 +490,7 @@ function render() {
   $entries.innerHTML = "";
   $skeleton.hidden = true;
 
-  if (currentPath !== "/") {
+  if (currentPath !== "/" && !smartView) {
     const up = parentDir(currentPath);
     if (up !== null) {
       const upEl = document.createElement("div");
@@ -451,7 +506,10 @@ function render() {
       $entries.style.display = "none";
       $emptyState.hidden = false;
       $emptyState.querySelector(".empty-title").textContent =
-        currentQuery ? "Tidak ada hasil" : (remoteResults.length ? "Filter kosong" : "Belum ada berkas");
+        currentQuery ? "Tidak ada hasil"
+        : (smartView === "recents" ? "Belum ada berkas terbaru"
+        : (smartView === "favorites" ? "Belum ada berkas berbintang"
+        : (remoteResults.length ? "Filter kosong" : "Belum ada berkas")));
       return;
     } else {
       $emptyState.hidden = true;
@@ -502,9 +560,9 @@ function render() {
     } else if (item.vault) {
       actions = "";
     } else if (item.is_dir) {
-      actions = `<div class="entry-actions"><button class="entry-act" data-act="share" title="Bagikan"><i class="fa-solid fa-share-nodes"></i></button>${isAdmin ? '<button class="entry-act" data-act="zip" title="Unduh ZIP"><i class="fa-solid fa-file-zipper"></i></button><button class="entry-act danger" data-act="del" title="Hapus"><i class="fa-solid fa-trash"></i></button>' : ''}</div>`;
+      actions = `<div class="entry-actions"><button class="entry-act star${favSet.has(item.path) ? " on" : ""}" data-act="fav" title="Beri bintang"><i class="fa-solid fa-star"></i></button><button class="entry-act" data-act="share" title="Bagikan"><i class="fa-solid fa-share-nodes"></i></button>${isAdmin ? '<button class="entry-act" data-act="zip" title="Unduh ZIP"><i class="fa-solid fa-file-zipper"></i></button><button class="entry-act danger" data-act="del" title="Hapus"><i class="fa-solid fa-trash"></i></button>' : ''}</div>`;
     } else {
-      actions = `<div class="entry-actions"><button class="entry-act" data-act="share" title="Bagikan"><i class="fa-solid fa-share-nodes"></i></button>${isAdmin ? '<button class="entry-act danger" data-act="del" title="Hapus"><i class="fa-solid fa-trash"></i></button>' : ''}</div>`;
+      actions = `<div class="entry-actions"><button class="entry-act star${favSet.has(item.path) ? " on" : ""}" data-act="fav" title="Beri bintang"><i class="fa-solid fa-star"></i></button><button class="entry-act" data-act="share" title="Bagikan"><i class="fa-solid fa-share-nodes"></i></button>${isAdmin ? '<button class="entry-act danger" data-act="del" title="Hapus"><i class="fa-solid fa-trash"></i></button>' : ''}</div>`;
     }
 
     const chk = selMode && !item.vault
@@ -1172,6 +1230,29 @@ function handleAct(item, act) {
   if (act === "dl") { if (inVault()) vaultDownload(item.name); else location.assign("/api/download?path=" + encodeURIComponent(item.path)); return; }
   if (act === "zip") { zipFolder(item); return; }
   if (act === "share") { openShare(item); }
+  if (act === "fav") { toggleFavorite(item); }
+}
+
+async function toggleFavorite(item) {
+  if (!isAdmin) { openDrawer(); return; }
+  const path = item.path;
+  const isFav = favSet.has(path);
+  try {
+    const r = await fetch("/api/favorites", {
+      method: isFav ? "DELETE" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, name: item.name })
+    });
+    if (!r.ok) return;
+    if (isFav) favSet.delete(path); else favSet.add(path);
+    updateFavBadge();
+    applyToast(isFav ? "Bintang dihapus" : "Ditandai bintang", isFav ? "fa-star" : "fa-solid fa-star");
+    if (smartView === "favorites") loadFavorites(); else render();
+  } catch (e) {}
+}
+function updateFavBadge() {
+  const el = $("favCount");
+  if (el) { el.textContent = favSet.size; el.hidden = favSet.size === 0; }
 }
 
 async function zipFolder(item) {
@@ -1186,6 +1267,120 @@ async function zipFolder(item) {
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   } catch (e) {}
 }
+
+// ===== FAVORITES + GAUGE =====
+async function refreshFavs() {
+  try {
+    const r = await fetch("/api/favorites");
+    if (r.ok) {
+      const d = await r.json();
+      favSet = new Set((d.favorites || []).map(it => it.path));
+      updateFavBadge();
+    }
+  } catch (e) {}
+}
+function fmtGB(b) {
+  if (b == null || isNaN(b)) return "—";
+  if (b < 1024) return b + " B";
+  const gb = b / (1024 ** 3);
+  if (gb >= 1) return gb.toFixed(1) + " GB";
+  const mb = b / (1024 ** 2);
+  if (mb >= 1) return Math.round(mb) + " MB";
+  return Math.round(b / 1024) + " KB";
+}
+async function refreshGauge() {
+  const pctEl = $("gaugePercent"), fillEl = $("gaugeFill"), metaEl = $("gaugeMeta"), nodeEl = $("gaugeNode"), dotEl = $("gaugeDot");
+  if (!fillEl) return;
+  try {
+    const r = await fetch("/api/panel");
+    if (r.ok) {
+      const d = await r.json();
+      const s = d.storage || {};
+      const total = s.total || 0, used = s.used || 0;
+      const pct = total > 0 ? (used / total) * 100 : 0;
+      pctEl.textContent = pct.toFixed(1) + "%";
+      fillEl.style.width = Math.min(pct, 100) + "%";
+      metaEl.textContent = fmtGB(used) + " terpakai dari " + fmtGB(total);
+      nodeEl.textContent = "Online";
+      dotEl.classList.add("pulse");
+    } else {
+      nodeEl.textContent = "Offline";
+      dotEl.classList.remove("pulse");
+    }
+  } catch (e) {
+    nodeEl.textContent = "Offline";
+    dotEl.classList.remove("pulse");
+  }
+}
+setInterval(() => { if (isAdmin) refreshGauge(); }, 30000);
+
+// ===== SHARES SHEET =====
+function openSharesSheet() {
+  const sh = $("sharesSheet"), ov = $("sharesOverlay");
+  if (!sh) { applyToast("Komponen berbagi belum siap", "fa-link"); return; }
+  sh.hidden = false; ov.hidden = false;
+  loadShares();
+}
+async function loadShares() {
+  const list = $("sharesList");
+  if (!list) return;
+  list.innerHTML = '<div class="skel" style="height:44px"></div><div class="skel" style="height:44px"></div>';
+  try {
+    const r = await fetch("/api/shares");
+    if (r.status === 401) { doLoginPrompt(); return; }
+    const d = await r.json();
+    const shares = d.shares || [];
+    if (!shares.length) {
+      list.innerHTML = '<p class="muted" style="padding:16px;text-align:center">Belum ada tautan berbagi aktif.</p>';
+      return;
+    }
+    list.innerHTML = shares.map(s => {
+      const exp = s.expires_at ? new Date(s.expires_at * 1000).toLocaleDateString("id-ID") : "Tanpa batas";
+      const cap = s.limit ? s.uses + "/" + s.limit + " dipakai" : "Tak terbatas";
+      return `<div class="share-row"><div class="share-row-main"><div class="share-row-name">${esc(s.name)}</div><div class="share-row-meta">${esc(s.path)} · ${esc(exp)} · ${esc(cap)}</div></div><div class="share-row-acts"><button class="icon-btn" data-copy="${esc(s.url)}" title="Salin tautan"><i class="fa-solid fa-copy"></i></button><button class="icon-btn" data-open="${esc(s.url)}" title="Buka"><i class="fa-solid fa-arrow-up-right-from-square"></i></button><button class="icon-btn danger" data-revoke="${esc(s.token)}" title="Hapus tautan"><i class="fa-solid fa-trash"></i></button></div></div>`;
+    }).join("");
+    list.querySelectorAll("[data-copy]").forEach(b => b.addEventListener("click", () => {
+      navigator.clipboard.writeText(location.origin + b.dataset.copy).then(() => applyToast("Tautan disalin", "fa-copy"));
+    }));
+    list.querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () => window.open(b.dataset.open, "_blank")));
+    list.querySelectorAll("[data-revoke]").forEach(b => b.addEventListener("click", async () => {
+      if (!confirm("Hapus tautan berbagi ini?")) return;
+      await fetch("/api/share", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: b.dataset.revoke }) });
+      loadShares();
+    }));
+  } catch (e) {
+    list.innerHTML = '<p class="muted" style="padding:16px;text-align:center">Gagal memuat tautan.</p>';
+  }
+}
+
+// ===== TELEGRAM / CONNECT / TRASH EMPTY =====
+$("drawerTelegram") && $("drawerTelegram").addEventListener("click", () => { closeDrawer(); window.open("/t", "_blank"); });
+$("drawerWebdav") && $("drawerWebdav").addEventListener("click", () => { closeDrawer(); openConnectSheet(); });
+$("drawerEmptyTrash") && $("drawerEmptyTrash").addEventListener("click", async () => {
+  if (!confirm("Kosongkan sampah permanen? Tindakan ini tidak bisa dibatalkan.")) return;
+  await fetch("/api/trash/empty", { method: "POST", headers: { "Content-Type": "application/json" } });
+  loadTrash();
+  applyToast("Sampah dikosongkan", "fa-broom");
+});
+function openConnectSheet() {
+  const sh = $("connectSheet"), ov = $("connectOverlay");
+  if (!sh) return;
+  const urlEl = $("connectUrl");
+  if (urlEl) urlEl.textContent = location.origin;
+  sh.hidden = false; ov.hidden = false;
+}
+// shares + connect sheet close bindings
+const $sharesOv = $("sharesOverlay"), $sharesClose = $("sharesClose");
+if ($sharesOv) $sharesOv.addEventListener("click", () => { $("sharesSheet").hidden = true; $sharesOv.hidden = true; });
+if ($sharesClose) $sharesClose.addEventListener("click", () => { $("sharesSheet").hidden = true; $sharesOv.hidden = true; });
+const $connOv = $("connectOverlay"), $connClose = $("connectClose");
+if ($connOv) $connOv.addEventListener("click", () => { $("connectSheet").hidden = true; $connOv.hidden = true; });
+if ($connClose) $connClose.addEventListener("click", () => { $("connectSheet").hidden = true; $connOv.hidden = true; });
+const $connCopy = $("connectCopyUrl");
+if ($connCopy) $connCopy.addEventListener("click", () => { navigator.clipboard.writeText(location.origin).then(() => applyToast("Alamat disalin", "fa-copy")); });
+const $connBot = $("connectOpenBot");
+if ($connBot) $connBot.addEventListener("click", () => window.open("/t", "_blank"));
+
 
 // ===== SHARE SHEET =====
 const $shareSheet = $("shareSheet"), $shareOv = $("shareOverlay"), $shareName = $("shareName"), $shareLink = $("shareLink"), $shareQR = $("shareQR"), $shareQRWrap = $("shareQRWrap"), $shareCopy = $("shareCopy");

@@ -39,7 +39,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/static/fa/all.min.css">
-<link rel="stylesheet" href="/static/app.css?v=43">
+<link rel="stylesheet" href="/static/app.css?v=44">
 </head>
 <body>
 
@@ -69,10 +69,33 @@
   <!-- ADMIN -->
   <div id="drawerAdmin" hidden>
     <div class="drawer-admin-badge"><i class="fa-solid fa-shield-halved"></i> Admin</div>
-    <button class="drawer-item" data-nav="panel"><i class="fa-solid fa-chart-pie"></i><span>Dashboard</span></button>
-    <button class="drawer-item" data-nav="folder"><i class="fa-solid fa-folder-plus"></i><span>Folder Baru</span></button>
+
+    <div class="drawer-sec-label">Akses Cepat</div>
+    <button class="drawer-item" data-nav="all"><i class="fa-solid fa-folder-tree"></i><span>Semua Berkas</span></button>
+    <button class="drawer-item" data-nav="recents"><i class="fa-solid fa-clock-rotate-left"></i><span>Terbaru</span></button>
+    <button class="drawer-item" data-nav="favorites"><i class="fa-solid fa-star"></i><span>Berbintang</span><span class="drawer-theme-val" id="favCount">0</span></button>
+    <button class="drawer-item" data-nav="shares"><i class="fa-solid fa-link"></i><span>Tautan Berbagi</span></button>
     <button class="drawer-item" id="drawerTrash"><i class="fa-solid fa-trash-can"></i><span>Sampah</span><span class="drawer-theme-val" id="trashCount">0</span></button>
+
+    <div class="drawer-sec-label">Alat &amp; Sistem</div>
+    <button class="drawer-item" data-nav="panel"><i class="fa-solid fa-chart-pie"></i><span>Dashboard</span></button>
+    <button class="drawer-item" id="drawerVault"><i class="fa-solid fa-lock"></i><span>Vault</span><span class="drawer-theme-val" id="drawerVaultState">Terkunci</span></button>
+    <button class="drawer-item" data-nav="folder"><i class="fa-solid fa-folder-plus"></i><span>Folder Baru</span></button>
+    <button class="drawer-item" id="drawerTelegram"><i class="fa-brands fa-telegram"></i><span>Telegram Bot</span><span class="drawer-theme-val" id="drawerBotState">Aktif</span></button>
+    <button class="drawer-item" id="drawerWebdav"><i class="fa-solid fa-plug-circle-bolt"></i><span>Hubungkan Perangkat</span></button>
     <button class="drawer-item" data-nav="settings"><i class="fa-solid fa-gear"></i><span>Setelan</span></button>
+
+    <div class="drawer-sec-label">Penyimpanan</div>
+    <div class="gauge-widget" id="gaugeWidget">
+      <div class="gauge-top">
+        <span class="gauge-percent" id="gaugePercent">—</span>
+        <span class="gauge-live"><i class="fa-solid fa-circle pulse" id="gaugeDot"></i><span id="gaugeNode">Menghubungi…</span></span>
+      </div>
+      <div class="gauge-bar"><div class="gauge-fill" id="gaugeFill"></div></div>
+      <div class="gauge-meta" id="gaugeMeta">Memuat kapasitas…</div>
+    </div>
+
+    <button class="drawer-item danger-subtle" id="drawerEmptyTrash"><i class="fa-solid fa-broom"></i><span>Kosongkan Sampah</span></button>
   </div>
 
   <div class="drawer-divider"></div>
@@ -80,11 +103,6 @@
   <button class="drawer-item" id="drawerTheme">
     <i class="fa-solid fa-circle-half-stroke"></i><span>Tema</span>
     <span class="drawer-theme-val" id="drawerThemeVal">Mode Gelap</span>
-  </button>
-
-  <button class="drawer-item" id="drawerVault">
-    <i class="fa-solid fa-lock"></i><span>Vault</span>
-    <span class="drawer-theme-val" id="drawerVaultState">Terkunci</span>
   </button>
 
   <div id="drawerLoggedActions" class="drawer-foot" hidden>
@@ -291,6 +309,48 @@
   </div>
 </div>
 
+<!-- ===== SHARES LIST SHEET ===== -->
+<div class="scrim" id="sharesOverlay" hidden></div>
+<div class="sheet" id="sharesSheet" role="dialog" aria-modal="true" aria-label="Tautan Berbagi" hidden style="max-width:430px">
+  <div class="sheet-head">
+    <div class="sheet-ico" style="color:var(--accent);background:color-mix(in srgb, var(--accent) 16%, transparent);border-color:color-mix(in srgb, var(--accent) 30%, transparent)"><i class="fa-solid fa-link"></i></div>
+    <div class="sheet-ttl"><div class="sheet-title">Tautan Berbagi</div><div class="sheet-sub">Kelola tautan publik yang aktif</div></div>
+    <button class="sheet-close" id="sharesClose" aria-label="Tutup"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="sheet-body" style="padding:12px 16px">
+    <div id="sharesList" class="shares-list"></div>
+  </div>
+</div>
+
+<!-- ===== CONNECT DEVICE SHEET ===== -->
+<div class="scrim" id="connectOverlay" hidden></div>
+<div class="sheet" id="connectSheet" role="dialog" aria-modal="true" aria-label="Hubungkan Perangkat" hidden style="max-width:430px">
+  <div class="sheet-head">
+    <div class="sheet-ico" style="color:var(--success);background:color-mix(in srgb, var(--success) 16%, transparent);border-color:color-mix(in srgb, var(--success) 30%, transparent)"><i class="fa-solid fa-plug-circle-bolt"></i></div>
+    <div class="sheet-ttl"><div class="sheet-title">Hubungkan Perangkat</div><div class="sheet-sub">Akses storage dari perangkat lain</div></div>
+    <button class="sheet-close" id="connectClose" aria-label="Tutup"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="sheet-body" style="padding:16px 20px;display:flex;flex-direction:column;gap:12px">
+    <div class="connect-row">
+      <i class="fa-solid fa-globe" style="color:var(--accent)"></i>
+      <div class="connect-main">
+        <div class="connect-title">Alamat Web</div>
+        <div class="connect-val" id="connectUrl">—</div>
+      </div>
+      <button class="icon-btn" id="connectCopyUrl" title="Salin"><i class="fa-solid fa-copy"></i></button>
+    </div>
+    <div class="connect-row">
+      <i class="fa-brands fa-telegram" style="color:var(--accent)"></i>
+      <div class="connect-main">
+        <div class="connect-title">Upload / Download via Telegram</div>
+        <div class="connect-val">Bot terhubung &amp; aktif</div>
+      </div>
+      <button class="icon-btn" id="connectOpenBot" title="Buka"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+    </div>
+    <p class="muted" style="font-size:12px;text-align:center;margin:6px 0 0">WebDAV &amp; mount jaringan belum aktif di server ini.</p>
+  </div>
+</div>
+
 <!-- ===== ZIP INSPECTOR SHEET ===== -->
 <div class="scrim" id="zipOverlay" hidden></div>
 <div class="sheet" id="zipSheet" role="dialog" aria-modal="true" aria-label="Isi ZIP" hidden>
@@ -426,6 +486,6 @@
   </div>
 </div>
 
-<script src="/static/app.js?v=39"></script>
+<script src="/static/app.js?v=41"></script>
 </body>
 </html>

@@ -28,6 +28,20 @@ app.secret_key = SECRET
 TRASH_DIR = STORAGE_DIR / ".trash"
 TRASH_IDX = SYS_DIR / "trash.json"
 TRASH_RETENTION = 30 * 86400
+FAVORITES_FILE = SYS_DIR / "favorites.json"
+
+def _read_json(fp, default):
+    if not fp.exists():
+        return default
+    try:
+        return json.loads(fp.read_text())
+    except Exception:
+        return default
+
+def _write_json(fp, data):
+    tmp = fp.with_suffix(fp.suffix + ".tmp")
+    tmp.write_text(json.dumps(data))
+    tmp.replace(fp)
 
 _features = {"2fa": False, "ocr": True, "backup": True}
 if FEATURES_FILE.exists():
@@ -286,7 +300,7 @@ def delete():
     path = data.get("path", "")
     permanent = data.get("permanent") is True or data.get("permanent") == 1
     target = (STORAGE_DIR / path.lstrip("/")).resolve()
-    if not str(target).startswith(str(STORAGE_DIR.resolve())):
+    if not target.is_relative_to(STORAGE_DIR.resolve()):
         return jsonify({"error": "invalid"}), 400
     if not target.exists():
         return jsonify({"error": "not found"}), 404
@@ -421,6 +435,102 @@ def exists_check():
         stat = dst.stat()
         return jsonify({"conflict": True, "name": name, "existing_size": stat.st_size, "existing_mtime": stat.st_mtime})
     return jsonify({"conflict": False})
+
+@app.route("/api/shares", methods=["GET"])
+@admin_required
+def shares_list():
+    shares = _load_shares()
+    now = time.time()
+    out, dirty = [], False
+    for token, e in shares.items():
+        exp = e.get("expires_at")
+        if exp and exp < now:
+            dirty = True
+            continue
+        out.append({
+            "token": token,
+            "path": e.get("path", "/"),
+            "name": e.get("path", "/").rstrip("/").rsplit("/", 1)[-1] or "Beranda",
+            "created": e.get("created", 0),
+            "uses": e.get("uses", 0),
+            "limit": e.get("limit"),
+            "expires_at": e.get("expires_at"),
+            "secure": bool(e.get("password") or e.get("expires_at") or e.get("limit")),
+            "url": "/s/" + token,
+        })
+    if dirty:
+        shares = {t: e for t, e in shares.items() if not (e.get("expires_at") and e["expires_at"] < now)}
+        _save_shares(shares)
+    out.sort(key=lambda x: x["created"], reverse=True)
+    return jsonify({"shares": out, "total": len(out)})
+
+@app.route("/api/share", methods=["DELETE"])
+@admin_required
+def share_revoke():
+    data = request.get_json(force=True)
+    token = str(data.get("token") or "")
+    if not token:
+        return jsonify({"error": "no token"}), 400
+    shares = _load_shares()
+    if token not in shares:
+        return jsonify({"ok": False, "error": "not found"}), 404
+    del shares[token]
+    _save_shares(shares)
+    audit("share_revoke", token)
+    return jsonify({"ok": True})
+
+@app.route("/api/recents", methods=["GET"])
+@admin_required
+def recents():
+    limit = min(int(request.args.get("limit", 30)), 200)
+    files = [file_info(p) for p in walk_files(STORAGE_DIR)]
+    files.sort(key=lambda x: x["mtime"], reverse=True)
+    return jsonify({"files": files[:limit]})
+
+@app.route("/api/favorites", methods=["GET"])
+@admin_required
+def favorites_list():
+    favs = _read_json(FAVORITES_FILE, [])
+    out = []
+    for f in favs:
+        rel = str(f.get("path", "")).lstrip("/")
+        if not rel:
+            continue
+        try:
+            p = (STORAGE_DIR / rel).resolve()
+            if not p.is_relative_to(STORAGE_DIR.resolve()) or not p.exists():
+                continue
+            if p.is_dir():
+                stat = p.stat()
+                out.append({"name": p.name, "path": "/" + str(p.relative_to(STORAGE_DIR)), "size": 0,
+                            "mtime": stat.st_mtime, "ext": "", "category": "folder", "is_dir": True, "is_video": False})
+            else:
+                out.append(file_info(p))
+        except Exception:
+            continue
+    return jsonify({"favorites": out})
+
+@app.route("/api/favorites", methods=["POST"])
+@admin_required
+def favorites_add():
+    data = request.get_json(force=True)
+    path = "/" + str(data.get("path", "")).lstrip("/")
+    name = data.get("name") or path.rstrip("/").rsplit("/", 1)[-1]
+    favs = _read_json(FAVORITES_FILE, [])
+    if not any(f.get("path") == path for f in favs):
+        favs.append({"path": path, "name": name, "added": time.time()})
+        _write_json(FAVORITES_FILE, favs)
+    return jsonify({"ok": True, "favorites": favs})
+
+@app.route("/api/favorites", methods=["DELETE"])
+@admin_required
+def favorites_remove():
+    data = request.get_json(force=True)
+    path = "/" + str(data.get("path", "")).lstrip("/")
+    favs = _read_json(FAVORITES_FILE, [])
+    favs = [f for f in favs if f.get("path") != path]
+    _write_json(FAVORITES_FILE, favs)
+    return jsonify({"ok": True, "favorites": favs})
 
 def _safe(rel):
     target = (STORAGE_DIR / rel.lstrip("/")).resolve()
