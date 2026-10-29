@@ -94,11 +94,11 @@ function loadVThumb(el) {
     if (done) return; done = true;
     try {
       const w = v.videoWidth, h = v.videoHeight;
-      const sc = Math.min(1, 400 / Math.max(w, h));
+      const sc = Math.min(1, 160 / Math.max(w, h));
       const c = document.createElement("canvas");
       c.width = Math.max(1, w * sc); c.height = Math.max(1, h * sc);
       c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
-      const url = c.toDataURL("image/jpeg", 0.72);
+      const url = c.toDataURL("image/jpeg", 0.55);
       vidCache[key] = `<img src="${url}" alt="" loading="lazy">`;
       el.innerHTML = vidCache[key];
     } catch (e) { el.innerHTML = fileArt("video", ""); }

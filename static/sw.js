@@ -1,4 +1,4 @@
-const CACHE = "storage-v35";
+const CACHE = "storage-v36";
 const SHELL = [
   "/",
   "/static/shell.html",
