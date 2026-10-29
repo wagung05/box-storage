@@ -296,6 +296,27 @@ body.dark { color-scheme: dark; }
   background: linear-gradient(135deg, color-mix(in srgb, var(--accent-2) 24%, transparent), color-mix(in srgb, var(--accent) 24%, transparent));
   color: var(--accent); font-size: 34px;
 }
+.entry-up {
+  border: 1px dashed color-mix(in srgb, var(--accent) 38%, var(--border));
+  background: color-mix(in srgb, var(--accent) 5%, var(--glass));
+}
+.entry-up:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, var(--glass-strong));
+}
+.entry-thumb-up {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 26%, transparent), color-mix(in srgb, var(--accent-2) 16%, transparent)) !important;
+  color: var(--accent) !important;
+  font-size: 26px !important;
+}
+html[data-theme="light"] .entry-up {
+  background: rgba(0, 113, 227, 0.04);
+  border-color: rgba(0, 113, 227, 0.28);
+}
+html[data-theme="light"] .entry-up:hover {
+  background: rgba(0, 113, 227, 0.08);
+  border-color: var(--accent);
+}
 .entries.list .entry { display: flex; align-items: center; gap: 12px; padding: 8px 10px; }
 .entries.list .entry-thumb { aspect-ratio: auto; width: 44px; height: 44px; border-radius: var(--radius-sm); font-size: 18px; }
 .entries.list .entry.is-dir .entry-thumb { font-size: 20px; }

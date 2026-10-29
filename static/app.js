@@ -281,7 +281,7 @@ function parentDir(p) {
 }
 function renderCrumbs() {
   const segs = (currentPath === "/" ? "" : currentPath).split("/").filter(Boolean);
-  $backBtn.hidden = currentPath === "/";
+  if ($backBtn) $backBtn.hidden = currentPath === "/";
   const home = `<button class="crumb-seg" data-crumb="/">/</button>`;
   if (!segs.length) { $breadcrumb.innerHTML = `<span class="crumb-seg crumb-cur">/</span>`; return; }
   let acc = "";
@@ -306,7 +306,7 @@ window.addEventListener("popstate", () => {
   const p = (history.state && history.state.path) || readURLPath();
   if (p !== currentPath) loadList(p); else renderCrumbs();
 });
-$backBtn.addEventListener("click", () => { const up = parentDir(currentPath); if (up !== null) goDir(up); });
+if ($backBtn) $backBtn.addEventListener("click", () => { const up = parentDir(currentPath); if (up !== null) goDir(up); });
 document.addEventListener("keydown", e => {
   if (!e.altKey || e.key !== "ArrowLeft") return;
   const up = parentDir(currentPath);
@@ -369,12 +369,36 @@ function render() {
   const items = filteredEntries(), frag = document.createDocumentFragment();
   $entries.innerHTML = "";
   $skeleton.hidden = true;
+
+  if (currentPath !== "/") {
+    const up = parentDir(currentPath);
+    if (up !== null) {
+      const upEl = document.createElement("div");
+      upEl.className = "entry entry-up is-dir";
+      upEl.innerHTML = `<div class="entry-thumb entry-thumb-up"><i class="fa-solid fa-arrow-turn-up"></i></div><div class="entry-body"><div class="entry-name" style="font-weight:700">..</div><div class="entry-meta">Kembali ke folder sebelumnya</div></div>`;
+      upEl.addEventListener("click", () => goDir(up));
+      frag.appendChild(upEl);
+    }
+  }
+
   if (!items.length) {
-    $entries.style.display = "none";
-    $emptyState.hidden = false;
-    $emptyState.querySelector(".empty-title").textContent =
-      currentQuery ? "Tidak ada hasil" : (remoteResults.length ? "Filter kosong" : "Belum ada berkas");
-    return;
+    if (currentPath === "/") {
+      $entries.style.display = "none";
+      $emptyState.hidden = false;
+      $emptyState.querySelector(".empty-title").textContent =
+        currentQuery ? "Tidak ada hasil" : (remoteResults.length ? "Filter kosong" : "Belum ada berkas");
+      return;
+    } else {
+      $emptyState.hidden = true;
+      $entries.style.display = viewMode === "grid" ? "grid" : "block";
+      $entries.classList.toggle("list", viewMode === "list");
+      $entries.appendChild(frag);
+      const emptyNote = document.createElement("div");
+      emptyNote.style.cssText = "padding:28px 14px;text-align:center;color:var(--muted);font-size:13.5px;grid-column:1/-1";
+      emptyNote.textContent = "Folder ini kosong";
+      $entries.appendChild(emptyNote);
+      return;
+    }
   }
   $emptyState.hidden = true;
   $entries.style.display = viewMode === "grid" ? "grid" : "block";
